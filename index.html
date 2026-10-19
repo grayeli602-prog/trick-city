@@ -118,6 +118,7 @@ html.phone #builder.sheetopen{display:block;position:fixed;inset:0;z-index:45;ov
   padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}
 html.phone #builder.sheetopen summary::after{content:"Done";font:600 14px var(--sans);color:var(--fg)}
 html.phone .irow{grid-template-columns:34px minmax(0,1fr) 92px 28px}
+#mapwrap{position:relative}
 .grid{display:flex;flex-direction:column;min-width:340px}
 .grow{display:grid;grid-template-columns:minmax(0,1fr) repeat(4,60px);align-items:center;border-bottom:1px solid var(--line)}
 .ghead{position:sticky;top:0;background:var(--bg);font:500 11px var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:8px 0}
@@ -204,7 +205,7 @@ html.fsmode{padding:0}
     <button class="btn primary" id="newTrick">+ New trick</button>
   </div>
 
-  <div style="position:relative" id="mapwrap"><div class="toast" id="toast"></div><div class="map" id="map"></div><button class="expand" id="expand" hidden><span>Tap to open the map</span></button><button class="fsx" id="fsx" hidden aria-label="Close map">×</button><div class="zoom" id="zoom" hidden><button data-z="out" aria-label="Zoom out">−</button><button data-z="in" aria-label="Zoom in">+</button><button data-z="fit">Fit</button></div><div class="pop" id="pop" hidden></div></div>
+  <div id="mapwrap"><div class="toast" id="toast"></div><div class="map" id="map"></div><button class="expand" id="expand" hidden><span>Tap to open the map</span></button><button class="fsx" id="fsx" hidden aria-label="Close map">×</button><div class="zoom" id="zoom" hidden><button data-z="out" aria-label="Zoom out">−</button><button data-z="in" aria-label="Zoom in">+</button><button data-z="fit">Fit</button></div><div class="pop" id="pop" hidden></div></div>
   <div class="legend" id="legend"></div>
 
   <details class="panel" id="builder">
@@ -462,7 +463,7 @@ function phoneSvg(M,bandFill){
   for(const n of M.nodes){const p=P(n),lines=wrapWords(n.name,lw,fs),stroke=bandFill[bandAt(M,n.y)];
     s+=`<g class="orb" data-k="${esc(n.k)}" transform="translate(${p.x},${p.y})"><circle r="24" fill="transparent"/><g transform="scale(${ORBK()})">${orbSvg(n)}</g>`+
       `<text y="${15+fs*.8}" text-anchor="middle" font-size="${fs}" font-weight="${n.k===sel?600:500}" fill="${n.lv?"var(--fg)":"var(--muted)"}" stroke="${stroke}" stroke-width="4" stroke-linejoin="round" paint-order="stroke">${lines.map((l,i)=>`<tspan x="0" dy="${i?fs*1.1:0}">${esc(l)}</tspan>`).join("")}</text></g>`}
-  return `<svg id="svg" width="${vw}" height="${vh}" viewBox="0 0 ${vw} ${vh}">${s}</svg>`}
+  return `<svg id="svg" width="${vw}" height="${vh}" viewBox="0 0 ${vw} ${vh}"><g id="vp" transform="translate(${Z.tx},${Z.ty}) scale(${Z.z})">${s}</g></svg>`}
 function bandAt(M,y){for(const sd of ["sun","earth","moon"]) if(y>=M.bands[sd].y0&&y<M.bands[sd].y1) return sd;return y<0?"sun":"moon"}
 function bandIcon(sd){const sun=S.sideCol.sun,moon=S.sideCol.moon;
   if(sd==="sun") return `<circle r="5" fill="${sun}"/>`;
@@ -583,11 +584,13 @@ const TOUCH=matchMedia("(pointer:coarse)").matches&&!matchMedia("(hover:hover)")
 const PHONE=TOUCH;
 let FS=PHONE;
 const ORBK=()=>PHONE?"0.9":"1";
-const PT={sx:1,sy:1,ox:0,oy:0,vw:0,vh:0};
+const PT={sx:1,sy:1,ox:0,oy:0,vw:0,vh:0};const Z={z:1,tx:0,ty:0};let pz=null;
+function clampZ(){Z.z=Math.max(1,Math.min(4,Z.z));Z.tx=Math.min(0,Math.max(PT.vw-PT.vw*Z.z,Z.tx));Z.ty=Math.min(0,Math.max(PT.vh-PT.vh*Z.z,Z.ty));VZ.sx=PT.sx*Z.z;VZ.sy=PT.sy*Z.z}
+function applyZ(){clampZ();const g=document.getElementById("vp");if(g)g.setAttribute("transform",`translate(${Z.tx},${Z.ty}) scale(${Z.z})`)}
 const P=n=>PHONE&&S.view==="map"?{x:n.x*PT.sx+PT.ox,y:n.y*PT.sy+PT.oy}:{x:n.x,y:n.y};
 function phoneFit(M){const m=$("map");PT.vw=m.clientWidth||innerWidth;PT.vh=m.clientHeight||innerHeight;
   const xs=M.nodes.map(n=>n.x),x0=Math.min(X0,...xs),x1=Math.max(X0+M.maxFl*COLW,...xs),mx=Math.min(48,PT.vw*.11);
-  PT.sx=(PT.vw-2*mx)/Math.max(1,x1-x0);PT.ox=mx-x0*PT.sx;PT.sy=PT.vh/M.H;PT.oy=0;VZ.sx=PT.sx;VZ.sy=PT.sy;
+  PT.sx=(PT.vw-2*mx)/Math.max(1,x1-x0);PT.ox=mx-x0*PT.sx;PT.sy=PT.vh/M.H;PT.oy=0;clampZ();
   PT.x0=x0;PT.x1=x1}
 function wrapWords(t,maxW,fs){const cw=fs*.56,words=t.split(" "),out=[];let l="";
   for(const w of words){const tt=l?l+" "+w:w;if(tt.length*cw>maxW&&l){out.push(l);l=w}else l=tt}if(l)out.push(l);
@@ -610,7 +613,10 @@ function zoomBy(f,cx,cy){const m=$("map");cx=cx??m.clientWidth/2;cy=cy??m.client
 $("map").addEventListener("pointerdown",e=>{
   const g=e.target.closest(".orb");
   if(TOUCH&&S.view==="map"&&FS){
-    if(!g) return;
+    tp.set(e.pointerId,{x:e.clientX,y:e.clientY});try{$("map").setPointerCapture(e.pointerId)}catch(_){}
+    if(tp.size>=2){if(drag){clearTimeout(drag.lp);if(drag.moved){drag.n.x=drag.ox;drag.n.y=drag.oy;drag=null;render(true)}drag=null}hidePop();
+      const[a,b]=[...tp.values()].slice(0,2),r=$("map").getBoundingClientRect();pz={d:Math.hypot(a.x-b.x,a.y-b.y)||1,mx:(a.x+b.x)/2-r.left,my:(a.y+b.y)/2-r.top,z:Z.z,tx:Z.tx,ty:Z.ty};return}
+    if(!g){const now=Date.now();if(now-(window.__lt||0)<300){Z.z=1;Z.tx=0;Z.ty=0;applyZ()}window.__lt=now;return}
     const svg=$("svg"),k=g.dataset.k,M=window.__M,n=M.map.get(k);if(!n) return;
     try{$("map").setPointerCapture(e.pointerId)}catch(_){}
     const lp=setTimeout(()=>{if(drag&&!drag.moved){drag.long=true;showPop(k)}},450);
@@ -629,13 +635,17 @@ $("map").addEventListener("pointerdown",e=>{
   drag={lp,g,k,n,M,sx:e.clientX,sy:e.clientY,ox:n.x,oy:n.y,moved:false,edges:[...svg.querySelectorAll("path[data-e]")].filter(p=>{const[a,b]=p.dataset.e.split(">");return a===k||b===k})};
 });
 $("map").addEventListener("pointermove",e=>{
+  if(PHONE&&S.view==="map"&&tp.has(e.pointerId)){tp.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(pz&&tp.size>=2){const[a,b]=[...tp.values()].slice(0,2),r=$("map").getBoundingClientRect(),mx=(a.x+b.x)/2-r.left,my=(a.y+b.y)/2-r.top;
+      Z.z=Math.max(1,Math.min(4,pz.z*Math.hypot(a.x-b.x,a.y-b.y)/pz.d));
+      Z.tx=mx-(pz.mx-pz.tx)/pz.z*Z.z;Z.ty=my-(pz.my-pz.ty)/pz.z*Z.z;applyZ();return}}
   if(TOUCH&&tp.has(e.pointerId)){tp.set(e.pointerId,{x:e.clientX,y:e.clientY});
     if(pinch&&tp.size===2){const[a,b]=[...tp.values()],r=$("map").getBoundingClientRect(),nz=Math.max(.25,Math.min(2.5,pinch.z*Math.hypot(a.x-b.x,a.y-b.y)/pinch.d));
       zoomBy(nz/VZ.z,(a.x+b.x)/2-r.left,(a.y+b.y)/2-r.top);return}
     if(pan){const dx=e.clientX-pan.sx,dy=e.clientY-pan.sy;if(pan.long) return;if(!pan.moved&&Math.hypot(dx,dy)<8) return;
       pan.moved=true;clearTimeout(pan.lp);hidePop();VZ.x=pan.x+dx;VZ.y=pan.y+dy;clampVZ();applyVZ();return}
   }
-  if(!drag) return;const kx=TOUCH&&FS&&VZ.sx?VZ.sx:(TOUCH?VZ.z:1),ky=TOUCH&&FS&&VZ.sy?VZ.sy:(TOUCH?VZ.z:1),dx=(e.clientX-drag.sx)/kx,dy=(e.clientY-drag.sy)/ky;
+  if(!drag) return;const kx=PHONE?PT.sx*Z.z:TOUCH&&FS&&VZ.sx?VZ.sx:(TOUCH?VZ.z:1),ky=PHONE?PT.sy*Z.z:TOUCH&&FS&&VZ.sy?VZ.sy:(TOUCH?VZ.z:1),dx=(e.clientX-drag.sx)/kx,dy=(e.clientY-drag.sy)/ky;
   if(drag.long) return;
   if(!drag.moved&&Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)<7) return;drag.moved=true;clearTimeout(drag.lp);hidePop();drag.g.classList.add("dragging");
   const n=drag.n,svgEl=$("svg");
@@ -644,6 +654,7 @@ $("map").addEventListener("pointermove",e=>{
   for(const p of drag.edges){const[a,b]=p.dataset.e.split(">");p.setAttribute("d",edgePath(P(drag.M.map.get(a)),P(drag.M.map.get(b))))}
 });
 function endTouch(e){
+  if(PHONE&&tp.has(e.pointerId)){tp.delete(e.pointerId);if(tp.size<2)pz=null;return}
   if(!TOUCH||!tp.has(e.pointerId)) return;tp.delete(e.pointerId);if(tp.size<2)pinch=null;
   if(pan&&tp.size===0){const p=pan;pan=null;clearTimeout(p.lp);
     if(!p.moved&&!p.long){if(p.k!==null){hidePop();sel=sel===p.k?null:p.k;if(sel===null)$("sheet").hidden=true;render()}else if($("pop").hidden===false)hidePop()}}
@@ -751,7 +762,7 @@ $("addIng").onclick=()=>{const id="c"+Date.now().toString(36);S.ings.push({id,na
   const inp=document.querySelector(`[data-in="${S.ings.length-1}"]`);if(inp){inp.focus();inp.select()}};
 
 
-if(PHONE){document.documentElement.classList.add("phone");S.view=S.view||"map";
+if(PHONE){document.documentElement.classList.add("phone");["gesturestart","gesturechange"].forEach(t=>document.addEventListener(t,e=>e.preventDefault(),{passive:false}));S.view=S.view||"map";
   const bar=document.createElement("div");bar.className="pbar";bar.append($("stance"),$("newTrick"),document.querySelector(".gearwrap"));document.body.prepend(bar);
   $("openIngs").onclick=()=>{$("settings").hidden=true;const b=$("builder");b.open=true;b.classList.add("sheetopen");b.scrollTop=0};
   $("builder").addEventListener("toggle",()=>{if(!$("builder").open)$("builder").classList.remove("sheetopen")});
