@@ -94,6 +94,30 @@ html.fsmode,html.fsmode body{overflow:hidden;overscroll-behavior:none;height:100
 .expand span{background:var(--fg);color:var(--bg);font:600 14px var(--sans);padding:10px 16px;border-radius:999px;box-shadow:0 4px 14px rgba(0,0,0,.2)}
 #mapwrap.fs .zoom{bottom:calc(10px + env(safe-area-inset-bottom,0px));right:calc(10px + env(safe-area-inset-right,0px))}
 #mapwrap.fs .toast{bottom:calc(10px + env(safe-area-inset-bottom,0px))}
+
+.phoneonly{display:none}
+html.phone .phoneonly{display:flex}
+html.phone{padding:0}
+html.phone,html.phone body{height:100%;overflow:hidden;overscroll-behavior:none;background:var(--bg)}
+html.phone body{padding:0}
+html.phone .wrap{max-width:none;gap:0}
+html.phone header.top,html.phone .wrap>.bar,html.phone .wrap>.legend{display:none!important}
+.pbar{position:fixed;left:0;right:0;top:0;z-index:30;display:flex;align-items:center;gap:8px;background:var(--bg);border-bottom:1px solid var(--line);
+  padding:calc(6px + env(safe-area-inset-top,0px)) max(10px,env(safe-area-inset-right,0px)) 6px max(10px,env(safe-area-inset-left,0px));height:calc(52px + env(safe-area-inset-top,0px))}
+.pbar .seg{flex:1;min-width:0}
+.pbar .btn{white-space:nowrap;padding:7px 11px}
+.pbar .gear{width:38px;height:38px}
+html.phone #mapwrap{position:fixed;left:0;right:0;top:calc(52px + env(safe-area-inset-top,0px));bottom:0;z-index:5}
+html.phone #map{height:100%;border:0;border-radius:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+html.phone #map.touch{overflow:hidden;touch-action:none;margin:0;height:100%}
+html.phone #map .grid{padding-bottom:calc(20px + env(safe-area-inset-bottom,0px))}
+html.phone .settings{top:44px;max-height:calc(100dvh - 80px);overflow:auto}
+html.phone #mapwrap .toast{bottom:calc(10px + env(safe-area-inset-bottom,0px));max-width:calc(100% - 20px)}
+html.phone #builder{display:none}
+html.phone #builder.sheetopen{display:block;position:fixed;inset:0;z-index:45;overflow:auto;border:0;border-radius:0;background:var(--bg);
+  padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}
+html.phone #builder.sheetopen summary::after{content:"Done";font:600 14px var(--sans);color:var(--fg)}
+html.phone .irow{grid-template-columns:34px minmax(0,1fr) 92px 28px}
 .grid{display:flex;flex-direction:column;min-width:340px}
 .grow{display:grid;grid-template-columns:minmax(0,1fr) repeat(4,60px);align-items:center;border-bottom:1px solid var(--line)}
 .ghead{position:sticky;top:0;background:var(--bg);font:500 11px var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:8px 0}
@@ -172,7 +196,7 @@ html.fsmode{padding:0}
   <header class="top">
     <h1>Trick Map</h1>
     <div class="gearwrap"><button class="gear" id="gear" aria-label="Settings" aria-expanded="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 4.3c.4-1.7 3-1.7 3.4 0a1.7 1.7 0 0 0 2.6 1.1c1.5-.9 3.3.8 2.4 2.4a1.7 1.7 0 0 0 1 2.5c1.8.4 1.8 3 0 3.4a1.7 1.7 0 0 0-1 2.6c.9 1.5-.9 3.3-2.4 2.4a1.7 1.7 0 0 0-2.6 1c-.4 1.8-3 1.8-3.4 0a1.7 1.7 0 0 0-2.6-1c-1.5.9-3.3-.9-2.4-2.4a1.7 1.7 0 0 0-1-2.6c-1.8-.4-1.8-3 0-3.4a1.7 1.7 0 0 0 1-2.5c-.9-1.6.9-3.3 2.4-2.4a1.7 1.7 0 0 0 2.6-1.1z"/><circle cx="12" cy="12" r="3"/></svg></button>
-      <div class="settings" id="settings" hidden><div class="mono">Settings</div><div id="prefs"></div><p class="hint" id="syncline" style="max-width:280px"></p></div></div>
+      <div class="settings" id="settings" hidden><div class="mono">Settings</div><div id="prefs"></div><div class="legend phoneonly" id="legend2"></div><button class="btn phoneonly" id="openIngs">Ingredients and colors</button><p class="hint" id="syncline" style="max-width:280px"></p></div></div>
   </header>
 
   <div class="bar">
@@ -334,7 +358,7 @@ function model(){
   for(const sd of order){const inBand=nodes.filter(n=>n.side===sd),cols={};
     for(const n of inBand)(cols[n.fl]=cols[n.fl]||[]).push(n);
     let rows=0;for(const fl in cols){cols[fl].sort((a,b)=>sortKey(a)<sortKey(b)?-1:1);rows=Math.max(rows,cols[fl].length)}
-    const rh=Math.min(ROWH,(BANDH-BANDPAD-24)/Math.max(1,rows));
+    const rh=Math.min(ROWH,(BANDH-BANDPAD-60)/Math.max(1,rows));
     for(const fl in cols) cols[fl].forEach((n,i)=>{n.ax=X0+fl*COLW;n.ay=y+BANDPAD+i*rh+12});
     bands[sd]={y0:y,y1:y+BANDH};y+=BANDH}
   const maxFl=Math.max(4,...nodes.map(n=>n.fl));
@@ -423,18 +447,29 @@ function render(skipSheet){
   for(const n of M.nodes){
     s+=`<g class="orb" data-k="${esc(n.k)}" transform="translate(${n.x},${n.y}) scale(${ORBK()})"><circle r="22" fill="transparent"/>${orbSvg(n)}`+
        `<text x="${n.side==="sun"&&n.lv?22:18}" y="4" font-size="12.5" font-weight="${n.k===sel?600:500}" fill="${n.lv?"var(--fg)":"var(--muted)"}" stroke="${bandFill[bandAt(M,n.y)]}" stroke-width="5" stroke-linejoin="round" paint-order="stroke">${esc(n.name)}</text></g>`}
-  $("map").innerHTML=S.view==="grid"?gridHtml(M):`<svg id="svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${s}</svg>`;
-  const tm=TOUCH&&S.view==="map";if(!tm&&FS)setFS(false,true);$("map").classList.toggle("touch",tm);$("zoom").hidden=true;$("expand").hidden=!tm||FS;$("fsx").hidden=!tm||!FS;
-  if(tm) applyVZ()
+  if(PHONE&&S.view==="map") s=phoneSvg(M,bandFill);
+  $("map").innerHTML=S.view==="grid"?gridHtml(M):PHONE?s:`<svg id="svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${s}</svg>`;
+  const tm=TOUCH&&S.view==="map";$("map").classList.toggle("touch",tm);$("zoom").hidden=true;$("expand").hidden=true;$("fsx").hidden=true;
   renderBars();renderLegend();if(sel!==null&&!skipSheet) renderSheet(M);
 }
+function phoneSvg(M,bandFill){
+  phoneFit(M);const{vw,vh}=PT;let s="";
+  for(const sd of ["sun","earth","moon"]){const b=M.bands[sd],y0=b.y0*PT.sy,y1=b.y1*PT.sy;
+    s+=`<rect x="0" y="${y0}" width="${vw}" height="${y1-y0}" fill="${bandFill[sd]}"/>`;
+    s+=`<g transform="translate(12,${y0+14})">${bandIcon(sd)}<text x="11" y="3.5" font-size="9.5" font-family="Geist Mono, monospace" fill="var(--muted)" letter-spacing=".6">${SIDES[sd].toUpperCase()}</text></g>`}
+  for(const e of M.edges) s+=`<path data-e="${esc(e.a.k)}>${esc(e.b.k)}" d="${edgePath(P(e.a),P(e.b))}" fill="none" stroke="${BW(e.c)}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="${e.b.lv>=2&&e.a.lv>=2?.95:.45}"/>`;
+  const lw=Math.max(56,COLW*PT.sx-6),fs=10.5;
+  for(const n of M.nodes){const p=P(n),lines=wrapWords(n.name,lw,fs),stroke=bandFill[bandAt(M,n.y)];
+    s+=`<g class="orb" data-k="${esc(n.k)}" transform="translate(${p.x},${p.y})"><circle r="24" fill="transparent"/><g transform="scale(${ORBK()})">${orbSvg(n)}</g>`+
+      `<text y="${15+fs*.8}" text-anchor="middle" font-size="${fs}" font-weight="${n.k===sel?600:500}" fill="${n.lv?"var(--fg)":"var(--muted)"}" stroke="${stroke}" stroke-width="4" stroke-linejoin="round" paint-order="stroke">${lines.map((l,i)=>`<tspan x="0" dy="${i?fs*1.1:0}">${esc(l)}</tspan>`).join("")}</text></g>`}
+  return `<svg id="svg" width="${vw}" height="${vh}" viewBox="0 0 ${vw} ${vh}">${s}</svg>`}
 function bandAt(M,y){for(const sd of ["sun","earth","moon"]) if(y>=M.bands[sd].y0&&y<M.bands[sd].y1) return sd;return y<0?"sun":"moon"}
 function bandIcon(sd){const sun=S.sideCol.sun,moon=S.sideCol.moon;
   if(sd==="sun") return `<circle r="5" fill="${sun}"/>`;
   if(sd==="moon") return `<circle r="5" fill="${moon}" stroke="var(--muted)" stroke-width=".8"/>`;
   return `<path d="M0,-5 A5,5 0 0,0 0,5Z" fill="${sun}"/><path d="M0,-5 A5,5 0 0,1 0,5Z" fill="${moon}"/><circle r="5" fill="none" stroke="var(--muted)" stroke-width=".8"/>`}
 function legendOrb(side,lv){return `<svg width="34" height="34" viewBox="-17 -17 34 34">${orbSvg({side,lv,col:"#888888",k:"__"})}</svg>`}
-function renderLegend(){$("legend").innerHTML=LEVELS.map((l,i)=>`<span>${legendOrb("earth",i)}${l}</span>`).join("")}
+function renderLegend(){const h=LEVELS.map((l,i)=>`<span>${legendOrb("earth",i)}${l}</span>`).join("");$("legend").innerHTML=h;const l2=$("legend2");if(l2)l2.innerHTML=h}
 
 /* ===== bars ===== */
 const $=id=>document.getElementById(id);
@@ -443,7 +478,7 @@ function renderBars(){
   const sg=(key,opts,label)=>`<div class="seg" role="group" aria-label="${label}"><span class="mono" style="align-self:center;margin-right:4px">${label}</span>${opts.map(([v,l])=>`<button data-pref="${key}" data-val="${v}" aria-pressed="${(S[key]||opts[0][0])===v}">${l}</button>`).join("")}</div>`;
   $("prefs").innerHTML=sg("filter",[["all","Everything"],["next","Next stops"]],"Show")+sg("layout",[["auto","Auto"],["custom","Custom"]],"Layout")+sg("palette",[["color","Color"],["bw","Black and white"]],"Colors")+sg("rider",[["regular","Regular"],["goofy","Goofy"]],"I ride");
   document.documentElement.classList.toggle("bw",S.palette==="bw");
-  $("toast").innerHTML=toast||(matchMedia("(hover:hover)").matches?"Hover an orb to set its level. Click to open it. Drag to move.":"Tap an orb to open it, hold it to set the level, drag it to move it.");
+  $("toast").innerHTML=toast||(PHONE?"":"Hover an orb to set its level. Click to open it. Drag to move.");
 }
 
 /* ===== breakdown sheet ===== */
@@ -545,8 +580,19 @@ function initDeck(k){
 /* ===== drag orbs ===== */
 let drag=null;
 const TOUCH=matchMedia("(pointer:coarse)").matches&&!matchMedia("(hover:hover)").matches;
-let FS=false;
-const ORBK=()=>TOUCH&&FS&&VZ.sx?`${(.85/VZ.sx).toFixed(4)},${(.85/VZ.sy).toFixed(4)}`:"1";
+const PHONE=TOUCH;
+let FS=PHONE;
+const ORBK=()=>PHONE?"0.9":"1";
+const PT={sx:1,sy:1,ox:0,oy:0,vw:0,vh:0};
+const P=n=>PHONE&&S.view==="map"?{x:n.x*PT.sx+PT.ox,y:n.y*PT.sy+PT.oy}:{x:n.x,y:n.y};
+function phoneFit(M){const m=$("map");PT.vw=m.clientWidth||innerWidth;PT.vh=m.clientHeight||innerHeight;
+  const xs=M.nodes.map(n=>n.x),x0=Math.min(X0,...xs),x1=Math.max(X0+M.maxFl*COLW,...xs),mx=Math.min(48,PT.vw*.11);
+  PT.sx=(PT.vw-2*mx)/Math.max(1,x1-x0);PT.ox=mx-x0*PT.sx;PT.sy=PT.vh/M.H;PT.oy=0;VZ.sx=PT.sx;VZ.sy=PT.sy;
+  PT.x0=x0;PT.x1=x1}
+function wrapWords(t,maxW,fs){const cw=fs*.56,words=t.split(" "),out=[];let l="";
+  for(const w of words){const tt=l?l+" "+w:w;if(tt.length*cw>maxW&&l){out.push(l);l=w}else l=tt}if(l)out.push(l);
+  if(out.length>2){out[1]=out.slice(1).join(" ");out.length=2}
+  return out.map(x=>x.length*cw>maxW?x.slice(0,Math.max(3,Math.floor(maxW/cw)-1))+"…":x)}
 function setFS(on,quiet){FS=on;if(on){const h=Math.max(320,Math.min(window.innerHeight||9999,(screen.height||900)-100));$("mapwrap").style.setProperty("--fsh",h+"px")}
   $("mapwrap").classList.toggle("fs",on);document.documentElement.classList.toggle("fsmode",on);
   $("fsx").hidden=!on;$("zoom").hidden=true;$("expand").hidden=on||!(TOUCH&&S.view==="map");hidePop();window.scrollTo(0,0)
@@ -554,7 +600,7 @@ function setFS(on,quiet){FS=on;if(on){const h=Math.max(320,Math.min(window.inner
 function fitAll(){const m=$("map"),svg=$("svg");if(!svg) return;const W=+svg.getAttribute("width"),H=+svg.getAttribute("height");
   VZ.sx=m.clientWidth/W;VZ.sy=m.clientHeight/H;VZ.z=Math.min(VZ.sx,VZ.sy);VZ.x=0;VZ.y=0;applyVZ()}
 const VZ={x:0,y:0,z:.6,init:false};let moveK=null,pan=null,pinch=null;const tp=new Map();
-function applyVZ(){const svg=$("svg");if(!svg||!TOUCH) return;svg.style.transformOrigin="0 0";svg.style.transform=FS&&VZ.sx?`scale(${VZ.sx},${VZ.sy})`:`translate(${VZ.x}px,${VZ.y}px) scale(${VZ.z})`}
+function applyVZ(){const svg=$("svg");if(!svg||!TOUCH) return;if(PHONE){svg.style.transform="";return}svg.style.transformOrigin="0 0";svg.style.transform=FS&&VZ.sx?`scale(${VZ.sx},${VZ.sy})`:`translate(${VZ.x}px,${VZ.y}px) scale(${VZ.z})`}
 function clampVZ(){const m=$("map"),svg=$("svg");if(!svg) return;const W=+svg.getAttribute("width"),H=+svg.getAttribute("height"),cw=m.clientWidth,ch=m.clientHeight;
   VZ.x=Math.min(60,Math.max(Math.min(0,cw-W*VZ.z)-60,VZ.x));VZ.y=Math.min(60,Math.max(Math.min(0,ch-H*VZ.z)-60,VZ.y))}
 function fitVZ(minZ){const m=$("map"),svg=$("svg");if(!svg) return;const W=+svg.getAttribute("width"),H=+svg.getAttribute("height");
@@ -592,9 +638,10 @@ $("map").addEventListener("pointermove",e=>{
   if(!drag) return;const kx=TOUCH&&FS&&VZ.sx?VZ.sx:(TOUCH?VZ.z:1),ky=TOUCH&&FS&&VZ.sy?VZ.sy:(TOUCH?VZ.z:1),dx=(e.clientX-drag.sx)/kx,dy=(e.clientY-drag.sy)/ky;
   if(drag.long) return;
   if(!drag.moved&&Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)<7) return;drag.moved=true;clearTimeout(drag.lp);hidePop();drag.g.classList.add("dragging");
-  const n=drag.n,svgEl=$("svg"),MW=+svgEl.getAttribute("width")-14,MH=+svgEl.getAttribute("height")-14;n.x=Math.min(MW,Math.max(14,drag.ox+dx));n.y=Math.min(MH,Math.max(14,drag.oy+dy));
-  drag.g.setAttribute("transform",`translate(${n.x},${n.y}) scale(${ORBK()})`);
-  for(const p of drag.edges){const[a,b]=p.dataset.e.split(">");p.setAttribute("d",edgePath(drag.M.map.get(a),drag.M.map.get(b)))}
+  const n=drag.n,svgEl=$("svg");
+  if(PHONE){n.x=Math.min(PT.x1,Math.max(PT.x0,drag.ox+dx));n.y=Math.min(drag.M.H-30/PT.sy,Math.max(14/PT.sy,drag.oy+dy));const p=P(n);drag.g.setAttribute("transform",`translate(${p.x},${p.y})`)}
+  else{const MW=+svgEl.getAttribute("width")-14,MH=+svgEl.getAttribute("height")-14;n.x=Math.min(MW,Math.max(14,drag.ox+dx));n.y=Math.min(MH,Math.max(14,drag.oy+dy));drag.g.setAttribute("transform",`translate(${n.x},${n.y}) scale(${ORBK()})`)}
+  for(const p of drag.edges){const[a,b]=p.dataset.e.split(">");p.setAttribute("d",edgePath(P(drag.M.map.get(a)),P(drag.M.map.get(b))))}
 });
 function endTouch(e){
   if(!TOUCH||!tp.has(e.pointerId)) return;tp.delete(e.pointerId);if(tp.size<2)pinch=null;
@@ -703,7 +750,15 @@ $("builder").addEventListener("click",e=>{const t=e.target.closest("[data-idel]"
 $("addIng").onclick=()=>{const id="c"+Date.now().toString(36);S.ings.push({id,name:"New ingredient",color:"#"+Math.floor(Math.random()*0xffffff).toString(16).padStart(6,"0"),side:"earth"});save();renderIngs();
   const inp=document.querySelector(`[data-in="${S.ings.length-1}"]`);if(inp){inp.focus();inp.select()}};
 
+
+if(PHONE){document.documentElement.classList.add("phone");S.view=S.view||"map";
+  const bar=document.createElement("div");bar.className="pbar";bar.append($("stance"),$("newTrick"),document.querySelector(".gearwrap"));document.body.prepend(bar);
+  $("openIngs").onclick=()=>{$("settings").hidden=true;const b=$("builder");b.open=true;b.classList.add("sheetopen");b.scrollTop=0};
+  $("builder").addEventListener("toggle",()=>{if(!$("builder").open)$("builder").classList.remove("sheetopen")});
+  let rt;const rr=()=>{clearTimeout(rt);rt=setTimeout(()=>{if(S.view==="map")render(true)},120)};addEventListener("resize",rr);addEventListener("orientationchange",rr);
+}
 renderIngs();render();
+if(PHONE) requestAnimationFrame(()=>render(true));
 </script>
 
 <script>
