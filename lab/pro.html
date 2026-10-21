@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111110" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#fafaf8" media="(prefers-color-scheme: light)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Pro tool · Trick Map test</title>
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="../icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="../css/base.css">
+<link rel="stylesheet" href="../css/components.css">
+<link rel="stylesheet" href="lab.css">
+<link rel="stylesheet" href="pro.css">
+<script>
+  document.documentElement.classList.add(matchMedia("(pointer: coarse)").matches && !matchMedia("(hover: hover)").matches ? "phone" : "pc");
+</script>
+<script type="module" src="pro.js"></script>
+</head>
+<body class="pro">
+<header class="px-bar">
+  <div class="px-bar-l" id="labBar"></div>
+  <button class="px-search" type="button" id="searchBtn" aria-label="Search tricks and commands">
+    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 16l4.5 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    <span>Search tricks or commands</span><kbd id="searchKbd">⌘K</kbd>
+  </button>
+  <div class="px-bar-r">
+    <button class="px-ib" type="button" id="searchIcon" aria-label="Search tricks and commands"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 16l4.5 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+    <button class="px-ib" type="button" id="undoBtn" aria-label="Undo"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7H4V2M4.5 7.5A8 8 0 1 1 4 13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <button class="px-ib" type="button" id="redoBtn" aria-label="Redo"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 7h5V2M19.5 7.5A8 8 0 1 0 20 13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <span class="px-sep"></span>
+    <div class="px-zoom" id="zoomCtl">
+      <button class="px-ib" type="button" data-zoom="-1" aria-label="Zoom out">−</button>
+      <button class="px-zv" type="button" data-zoom="fit" title="Zoom to fit (F)">100%</button>
+      <button class="px-ib" type="button" data-zoom="1" aria-label="Zoom in">+</button>
+    </div>
+    <button class="px-ib px-selmode" type="button" id="selMode" aria-pressed="false" aria-label="Select several">
+      <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-dasharray="3 2.5"/><path d="M10 10l8 3-3.5 1.5L13 18z" fill="currentColor"/></svg>
+    </button>
+    <div class="seg px-views" id="views" role="group" aria-label="View"></div>
+    <button class="btn primary small" type="button" id="newTrick">+ New</button>
+    <button class="px-ib" type="button" id="helpBtn" aria-label="Keyboard shortcuts">?</button>
+  </div>
+</header>
+
+<div class="px-main">
+  <aside class="px-side" id="side" aria-label="Filters and history"></aside>
+  <main class="px-canvas" id="canvas">
+    <div class="px-map" id="map"></div>
+    <div class="px-grid" id="grid" hidden></div>
+    <div class="px-hint" id="hint"></div>
+  </main>
+  <aside class="px-insp" id="insp" aria-label="Inspector"></aside>
+</div>
+<footer class="px-status" id="status" aria-live="polite"></footer>
+<div class="px-toast" id="toast" role="status" aria-live="polite"></div>
+<noscript>This test version needs JavaScript turned on.</noscript>
+</body>
+</html>

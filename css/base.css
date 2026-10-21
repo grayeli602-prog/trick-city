@@ -1,0 +1,96 @@
+/* Design tokens and shared controls for Trick Map and the lab versions. */
+:root {
+  --bg: #fafaf8;
+  --fg: #111111;
+  --muted: #84847e;
+  --faint: #c9c8c2;
+  --line: #e6e5e0;
+  --chip: #f1f0ec;
+  --sheet: #ffffff;
+  --sunband: #fff4dc;
+  --earthband: #f2f2ee;
+  --moonband: #e7e8f1;
+  --danger: #d6402f;
+  --ok: #2f9a52;
+  --shadow: 0 12px 36px rgba(0, 0, 0, .18);
+  --sans: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Geist Mono", ui-monospace, Menlo, monospace;
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111110; --fg: #f0f0ec; --muted: #8e8e88; --faint: #4b4b47; --line: #272725; --chip: #1c1c1a; --sheet: #1a1a19;
+    --sunband: #241f13; --earthband: #171716; --moonband: #12131c; --danger: #ff6a5a; --ok: #4cc174;
+    --shadow: 0 12px 36px rgba(0, 0, 0, .5);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111110; --fg: #f0f0ec; --muted: #8e8e88; --faint: #4b4b47; --line: #272725; --chip: #1c1c1a; --sheet: #1a1a19;
+  --sunband: #241f13; --earthband: #171716; --moonband: #12131c; --danger: #ff6a5a; --ok: #4cc174;
+  --shadow: 0 12px 36px rgba(0, 0, 0, .5);
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.45 var(--sans); }
+[hidden] { display: none !important; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--fg); outline-offset: 2px;
+}
+
+.mono { font-family: var(--mono); font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.hint { font-size: 12px; color: var(--muted); margin: 0; }
+.hint.error { color: var(--danger); }
+
+.seg { display: flex; gap: 2px; flex-wrap: wrap; align-items: center; }
+.seg button { border: 0; background: none; color: var(--muted); font: 500 13px var(--sans); padding: 6px 10px; border-radius: 7px; }
+.seg button[aria-pressed="true"] { color: var(--fg); background: var(--chip); }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border: 1px solid var(--line); background: none; color: var(--fg); border-radius: 9px;
+  padding: 7px 12px; font: 500 13px var(--sans); text-decoration: none; white-space: nowrap;
+}
+.btn.primary { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.btn.danger { color: var(--danger); }
+.btn.small { padding: 4px 9px; font-size: 12px; }
+.btn:disabled { opacity: .45; cursor: default; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.chip {
+  border: 1px solid var(--line); background: none; color: var(--fg); border-radius: 999px;
+  padding: 4px 10px; font: 500 12px var(--sans); display: inline-flex; gap: 5px; align-items: center;
+}
+.chip i { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
+.chip:disabled { opacity: .4; cursor: default; }
+
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); align-items: center; }
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+
+/* Level picker (hover on PC, hold on phone) */
+.pop {
+  position: fixed; z-index: 60; background: var(--sheet); border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: var(--shadow); padding: 7px; display: flex; flex-direction: column; gap: 6px; width: max-content; max-width: calc(100vw - 16px);
+}
+.pop .pt { font-size: 12px; font-weight: 600; padding: 0 2px; }
+.pop .pt span { color: var(--muted); font-weight: 500; }
+.pop .pt.warn { color: var(--danger); }
+.pop .pr { display: flex; gap: 3px; }
+.pop button {
+  border: 1px solid var(--line); background: none; color: var(--fg); border-radius: 8px; padding: 7px 9px;
+  font: 500 12px var(--sans); white-space: nowrap;
+}
+.pop button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.pop button small { opacity: .6; font-size: 11px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}

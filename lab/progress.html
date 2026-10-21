@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111110" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#fafaf8" media="(prefers-color-scheme: light)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Progress · Trick Map test</title>
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="../icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="../css/base.css">
+<link rel="stylesheet" href="../css/components.css">
+<link rel="stylesheet" href="lab.css">
+<link rel="stylesheet" href="progress.css">
+<script>
+  document.documentElement.classList.add(matchMedia("(pointer: coarse)").matches && !matchMedia("(hover: hover)").matches ? "phone" : "pc");
+</script>
+<script type="module" src="progress.js"></script>
+</head>
+<body class="pg">
+<header class="pg-bar">
+  <div id="labBar"></div>
+  <button class="btn" type="button" id="openMap">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" aria-hidden="true"><path d="M9 4.5 3.5 6.8v12.7L9 17.2l6 2.3 5.5-2.3V4.5L15 6.8 9 4.5z"/><path d="M9 4.5v12.7M15 6.8v12.7"/></svg>Map
+  </button>
+</header>
+<main class="pg-main" id="main"></main>
+<div class="pg-toast" id="toast" role="status" aria-live="polite"></div>
+<section class="pg-mapview" id="mapOverlay" hidden aria-label="Map">
+  <div class="pg-mapbar"><b>Map</b><span class="hint" id="mapHint"></span><button class="btn" type="button" id="closeMap">Done</button></div>
+  <div class="pg-map" id="map"></div>
+</section>
+<noscript>This test version needs JavaScript turned on.</noscript>
+</body>
+</html>

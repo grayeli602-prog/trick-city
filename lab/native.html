@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111110" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#fafaf8" media="(prefers-color-scheme: light)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Native · Trick Map test</title>
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="../icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="../css/base.css">
+<link rel="stylesheet" href="../css/components.css">
+<link rel="stylesheet" href="lab.css">
+<link rel="stylesheet" href="native.css">
+<script>
+  document.documentElement.classList.add(matchMedia("(pointer: coarse)").matches && !matchMedia("(hover: hover)").matches ? "phone" : "pc");
+</script>
+<script type="module" src="native.js"></script>
+</head>
+<body class="nx">
+<header class="nx-nav">
+  <div class="nx-nav-l" id="labBack"></div>
+  <div class="nx-nav-title" id="navTitle">Map</div>
+  <div class="nx-nav-r" id="labChip">
+    <button class="nx-icon" type="button" id="newTrick" aria-label="New trick"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+  </div>
+</header>
+
+<main class="nx-pages">
+  <section class="nx-page nx-mappage" data-page="map" aria-label="Map">
+    <div class="nx-map" id="map"></div>
+  </section>
+  <section class="nx-page nx-list" data-page="stances" aria-label="Stances" hidden>
+    <h1 class="nx-large">Stances</h1>
+    <div class="nx-segwrap" aria-label="Stance"></div>
+    <p class="nx-tip" id="stanceTip"></p>
+    <div id="stanceList"></div>
+  </section>
+  <section class="nx-page nx-list" data-page="wants" aria-label="Wants" hidden>
+    <h1 class="nx-large">Wants</h1>
+    <p class="nx-sub">Up to 3 tricks you're chasing. Hold the button when you land one.</p>
+    <div id="wantCards" class="nx-wants"></div>
+  </section>
+  <section class="nx-page nx-list" data-page="settings" aria-label="Settings" hidden>
+    <h1 class="nx-large">Settings</h1>
+    <div id="settingsBody"></div>
+  </section>
+</main>
+
+<nav class="nx-tabs" id="tabs" aria-label="Tabs"></nav>
+<div class="nx-toast" id="toast" role="status" aria-live="polite"></div>
+<noscript>This test version needs JavaScript turned on.</noscript>
+</body>
+</html>
