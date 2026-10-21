@@ -30,7 +30,6 @@ test("every module import points at a real file", () => {
   const files = [
     ...readdirSync(join(root, "js/core")).map((f) => `js/core/${f}`),
     ...readdirSync(join(root, "js/app")).map((f) => `js/app/${f}`),
-    ...readdirSync(join(root, "lab")).filter((f) => f.endsWith(".js")).map((f) => `lab/${f}`),
   ];
   for (const file of files) {
     const src = readFileSync(join(root, file), "utf8");

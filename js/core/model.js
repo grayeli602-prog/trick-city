@@ -99,18 +99,3 @@ export function autoPositions(M) {
   for (const n of M.nodes) out[n.k] = { x: Math.round(n.ax), y: Math.round(n.ay) };
   return out;
 }
-
-/** Best path from the ollie to a trick, preferring parents you've landed. */
-export function routeTo(M, key) {
-  const path = [];
-  let n = M.map.get(key);
-  let guard = 0;
-  while (n && guard++ < 12) {
-    path.unshift(n);
-    if (n.k === "") break;
-    const parents = parentKeys(n.k).map((p) => M.map.get(p)).filter(Boolean);
-    parents.sort((a, b) => b.lv - a.lv || a.fl - b.fl);
-    n = parents[0];
-  }
-  return path;
-}

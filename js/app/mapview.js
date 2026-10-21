@@ -1,11 +1,11 @@
 // Interactive trick map. Draws the Sun/Earth/Moon bands, the subway lines and
-// the orbs, and turns pointer input into taps, holds, hovers, drags, pans and
-// pinch zoom. Used by the main app and every lab version.
+// the orbs, and turns pointer input into taps, holds, hovers, drags, box
+// select, pans and pinch zoom.
 //
 // Projections:
-//   "pc"      map coordinates 1:1 inside a scrolling box (desktop)
-//   "fit"     stretched to fill the box, two-finger pan/zoom on top (phone)
-//   "contain" uniform scale, free camera (lab: Spatial)
+//   "fit"      stretched to fill the box (phone); two fingers pan and zoom
+//   "contain"  uniform scale with a free camera (PC); scroll to pan, pinch or
+//              Ctrl/Cmd + scroll to zoom
 
 import { buildModel, bandAt, autoPositions, LAYOUT } from "../core/model.js";
 import { SIDES, SIDE_ORDER } from "../core/catalog.js";
@@ -20,34 +20,24 @@ export class MapView {
     this.store = store;
     this.o = {
       projection: "fit",
-      labels: null,           // "right" | "below"
-      orbScale: null,
-      labelSize: null,
+      orbScale: 0.9,
+      labelSize: 10.5,
       minZoom: 1,
       maxZoom: 4,
-      emptyDrag: "none",      // "none" | "pan" | "marquee", or (pointerType, event) => one of those
+      emptyDrag: "none",       // "none" | "pan" | "marquee", or (pointerType, event) => one of those
       orbDrag: true,
-      inertia: false,
-      wheelZoom: false,       // wheel zooms (horizontal wheel pans)
-      wheelPan: false,        // wheel pans, pinch or ctrl+wheel zooms (trackpad style)
       longPressMs: 450,
-      doubleTapEmpty: "reset", // "reset" | "zoom" | null
+      doubleTapEmpty: "reset", // "reset" | null
       stance: "regular",
       focusY: 0.42,
       include: () => [],
-      selection: () => null,  // Set of keys that are selected (ring + drag together)
-      decorate: null,         // (node) => { dim, ring, cls, extra, hideLabel, labelExtra(svg or ({ bottom, lines }) => svg) }
-      edgeStyle: null,        // (edge) => { opacity, width, color, glow }
-      overlay: null,          // (M, view) => svg drawn between lines and orbs (screen coordinates)
-      onTap: null, onTapEmpty: null, onLongPress: null, onLongMove: null, onLongEnd: null,
-      onHover: null, onHoverEnd: null, onDrop: null, onZoneChange: null, onMarquee: null,
-      onCamera: null, onRender: null, onGestureStart: null,
+      selection: () => null,   // Set of selected keys (ring, and they drag together)
+      decorate: null,          // (node) => { dim, ring, strong, cls, extra, hideLabel }
+      edgeStyle: null,         // (edge) => { opacity, width, color }
+      onTap: null, onTapEmpty: null, onLongPress: null, onHover: null, onHoverEnd: null,
+      onZoneChange: null, onMarquee: null, onCamera: null, onRender: null, onGestureStart: null,
       ...options,
     };
-    const pc = this.o.projection === "pc";
-    if (!this.o.labels) this.o.labels = pc ? "right" : "below";
-    if (this.o.orbScale == null) this.o.orbScale = pc ? 1 : 0.9;
-    if (this.o.labelSize == null) this.o.labelSize = this.o.labels === "right" ? 12.5 : 10.5;
 
     this.cam = { z: 1, tx: 0, ty: 0 };
     this.base = { sx: 1, sy: 1, ox: 0, oy: 0, vw: 0, vh: 0, x0: 0, x1: 0 };
@@ -63,35 +53,24 @@ export class MapView {
     root.prepend(this.canvas);
     this._bind();
 
-    if (!pc && typeof ResizeObserver !== "undefined") {
+    if (typeof ResizeObserver !== "undefined") {
       let last = "";
-      this._ro = new ResizeObserver(() => {
+      new ResizeObserver(() => {
         const size = `${root.clientWidth}x${root.clientHeight}`;
         if (size !== last && root.clientWidth) {
           last = size;
           this.render();
         }
-      });
-      this._ro.observe(root);
+      }).observe(root);
     }
   }
 
   /* ---------- coordinates ---------- */
 
-  get camera() { return this.o.projection !== "pc"; }
-
   toScreen(x, y) {
-    if (!this.camera) return { x, y };
     const b = this.base;
     const c = this.cam;
     return { x: (x * b.sx + b.ox) * c.z + c.tx, y: (y * b.sy + b.oy) * c.z + c.ty };
-  }
-
-  toWorld(x, y) {
-    if (!this.camera) return { x, y };
-    const b = this.base;
-    const c = this.cam;
-    return { x: ((x - c.tx) / c.z - b.ox) / b.sx, y: ((y - c.ty) / c.z - b.oy) / b.sy };
   }
 
   _project(M) {
@@ -101,9 +80,7 @@ export class MapView {
     const xs = M.nodes.map((n) => n.x);
     b.x0 = Math.min(LAYOUT.X0, ...xs);
     b.x1 = Math.max(LAYOUT.X0 + M.maxFl * LAYOUT.COLW, ...xs);
-    if (!this.camera) {
-      Object.assign(b, { sx: 1, sy: 1, ox: 0, oy: 0 });
-    } else if (this.o.projection === "fit") {
+    if (this.o.projection === "fit") {
       const mx = Math.min(48, b.vw * 0.11);
       b.sx = (b.vw - 2 * mx) / Math.max(1, b.x1 - b.x0);
       b.ox = mx - b.x0 * b.sx;
@@ -125,7 +102,8 @@ export class MapView {
     if (this.o.projection === "fit") {
       c.tx = clamp(c.tx, b.vw - b.vw * c.z, 0);
       c.ty = clamp(c.ty, b.vh - b.vh * c.z, 0);
-    } else if (this.o.projection === "contain" && this.M) {
+    } else if (this.M) {
+      // Keep some of the map on screen.
       const left = (b.x0 * b.sx + b.ox) * c.z;
       const right = (b.x1 * b.sx + b.ox) * c.z;
       const top = b.oy * c.z;
@@ -144,32 +122,20 @@ export class MapView {
     const M = (this.M = buildModel(store, { stance: this.o.stance, include: this.o.include() || [] }));
     this._project(M);
     this._clampCamera();
-    const pc = !this.camera;
-    const W = pc ? M.W : this.base.vw;
-    const H = pc ? M.H : this.base.vh;
+    const { vw: W, vh: H } = this.base;
     const selected = this.o.selection() || null;
 
     let s = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Trick map">`;
     s += `<g class="mv-bands">${SIDE_ORDER.map((side) => `<rect data-band="${side}" fill="${BAND_FILL[side]}"/>`).join("")}</g>`;
     s += `<g class="mv-bandlabels">${SIDE_ORDER.map((side) =>
-      `<g data-bandlabel="${side}">${bandIcon(side, colors)}<text class="mv-bandtext" x="${pc ? 14 : 11}" y="${pc ? 4 : 3.5}" font-size="${pc ? 10.5 : 9.5}">${SIDES[side].toUpperCase()}</text></g>`).join("")}</g>`;
-    if (pc) {
-      for (let fl = 1; fl <= M.maxFl; fl++) {
-        s += `<text class="mv-coltext" x="${LAYOUT.X0 + fl * LAYOUT.COLW - 4}" y="${M.bands.sun.y0 + 22}" font-size="10">+${fl}</text>`;
-      }
-    }
+      `<g data-bandlabel="${side}">${bandIcon(side, colors)}<text class="mv-bandtext" x="11" y="3.5" font-size="9.5">${SIDES[side].toUpperCase()}</text></g>`).join("")}</g>`;
     s += `<g class="mv-edges">`;
-    let glow = "";
     M.edges.forEach((e, i) => {
       const st = this.o.edgeStyle?.(e) || {};
       const opacity = st.opacity ?? (e.b.lv >= 2 && e.a.lv >= 2 ? 0.95 : 0.45);
-      const width = st.width || (pc ? 2.4 : 2);
-      s += `<path data-e="${i}" fill="none" stroke="${st.color || tone(e.c, palette)}" stroke-width="${width}" stroke-linejoin="round" stroke-linecap="round" opacity="${opacity}"/>`;
-      if (st.glow) glow += `<path data-eg="${i}" class="mv-flow" fill="none" stroke="var(--fg)" stroke-width="${width + 1.6}" stroke-linecap="round"/>`;
+      s += `<path data-e="${i}" fill="none" stroke="${st.color || tone(e.c, palette)}" stroke-width="${st.width || 2}" stroke-linejoin="round" stroke-linecap="round" opacity="${opacity}"/>`;
     });
-    s += `</g><g class="mv-glow">${glow}</g>`;
-    if (this.o.overlay) s += `<g class="mv-overlay">${this.o.overlay(M, this) || ""}</g>`;
-    s += `<g class="mv-orbs">${M.nodes.map((n) => this._orb(n, M, palette, selected)).join("")}</g></svg>`;
+    s += `</g><g class="mv-orbs">${M.nodes.map((n) => this._orb(n, M, palette, selected)).join("")}</g></svg>`;
 
     this.canvas.innerHTML = s;
     this.svg = this.canvas.firstElementChild;
@@ -177,7 +143,6 @@ export class MapView {
       bands: [...this.svg.querySelectorAll("[data-band]")],
       bandLabels: [...this.svg.querySelectorAll("[data-bandlabel]")],
       edges: [...this.svg.querySelectorAll("[data-e]")],
-      glows: new Map([...this.svg.querySelectorAll("[data-eg]")].map((p) => [Number(p.dataset.eg), p])),
       orbs: new Map([...this.svg.querySelectorAll(".orb")].map((g) => [g.dataset.k, g])),
     };
     this._renderedZoom = this.cam.z;
@@ -193,49 +158,35 @@ export class MapView {
     const halo = BAND_FILL[bandAt(M, n.y)];
     const fs = this.o.labelSize;
     let label = "";
-    let bottom = 14;
-    let lineCount = 0;
     if (!d.hideLabel) {
-      if (this.o.labels === "right") {
-        label = `<text x="18" y="4" font-size="${fs}" font-weight="${strong ? 600 : 500}" fill="${fill}" stroke="${halo}" stroke-width="5" stroke-linejoin="round" paint-order="stroke">${esc(n.name)}</text>`;
-        lineCount = 1;
-      } else {
-        const width = Math.max(56, LAYOUT.COLW * this.base.sx * this.cam.z - 6);
-        const lines = wrapWords(n.name, width, fs);
-        label = `<text y="${15 + fs * 0.8}" text-anchor="middle" font-size="${fs}" font-weight="${strong ? 600 : 500}" fill="${fill}" stroke="${halo}" stroke-width="4" stroke-linejoin="round" paint-order="stroke">${lines.map((l, i) => `<tspan x="0" dy="${i ? fs * 1.1 : 0}">${esc(l)}</tspan>`).join("")}</text>`;
-        lineCount = lines.length;
-        bottom = 15 + fs * 0.8 + (lines.length - 1) * fs * 1.1 + fs * 0.35;
-      }
+      const width = Math.max(56, LAYOUT.COLW * this.base.sx * this.cam.z - 6);
+      const lines = wrapWords(n.name, width, fs);
+      label = `<text y="${15 + fs * 0.8}" text-anchor="middle" font-size="${fs}" font-weight="${strong ? 600 : 500}" fill="${fill}" stroke="${halo}" stroke-width="4" stroke-linejoin="round" paint-order="stroke">${lines.map((l, i) => `<tspan x="0" dy="${i ? fs * 1.1 : 0}">${esc(l)}</tspan>`).join("")}</text>`;
     }
-    const extra = typeof d.labelExtra === "function" ? d.labelExtra({ bottom, lines: lineCount, fs, halo }) : d.labelExtra || "";
     return `<g class="orb${d.cls ? ` ${d.cls}` : ""}" data-k="${esc(n.k)}"${d.dim != null ? ` opacity="${d.dim}"` : ""}>` +
       `<circle class="hit" r="24" fill="transparent"/>${ring ? SELECT_RING : ""}` +
-      `<g class="dot" transform="scale(${this.o.orbScale})"><g class="dot-in">${orbSvg(n.lv, tone(n.col, palette), palette)}</g></g>` +
-      `${d.extra || ""}${label}${extra}</g>`;
+      `<g class="dot" transform="scale(${this.o.orbScale})">${orbSvg(n.lv, tone(n.col, palette), palette)}</g>` +
+      `${d.extra || ""}${label}</g>`;
   }
 
   /** Position bands, lines and orbs for the current camera (no rebuild). */
   _layout() {
     const M = this.M;
     if (!M || !this.els) return;
-    const pc = !this.camera;
     for (const r of this.els.bands) {
       const band = M.bands[r.dataset.band];
       const y0 = this.toScreen(0, band.y0).y;
       const y1 = this.toScreen(0, band.y1).y;
       r.setAttribute("x", 0);
       r.setAttribute("y", y0);
-      r.setAttribute("width", pc ? M.W : this.base.vw);
+      r.setAttribute("width", this.base.vw);
       r.setAttribute("height", Math.max(0, y1 - y0));
     }
     for (const g of this.els.bandLabels) {
       const band = M.bands[g.dataset.bandlabel];
-      if (pc) g.setAttribute("transform", `translate(14,${band.y0 + 18})`);
-      else {
-        const y0 = this.toScreen(0, band.y0).y;
-        const y1 = this.toScreen(0, band.y1).y;
-        g.setAttribute("transform", `translate(12,${clamp(14, y0 + 14, y1 - 12)})`);
-      }
+      const y0 = this.toScreen(0, band.y0).y;
+      const y1 = this.toScreen(0, band.y1).y;
+      g.setAttribute("transform", `translate(12,${clamp(14, y0 + 14, y1 - 12)})`);
     }
     M.edges.forEach((e, i) => this._edge(i, e));
     for (const n of M.nodes) {
@@ -245,9 +196,7 @@ export class MapView {
   }
 
   _edge(i, e) {
-    const d = edgePath(this.toScreen(e.a.x, e.a.y), this.toScreen(e.b.x, e.b.y));
-    this.els.edges[i]?.setAttribute("d", d);
-    this.els.glows.get(i)?.setAttribute("d", d);
+    this.els.edges[i]?.setAttribute("d", edgePath(this.toScreen(e.a.x, e.a.y), this.toScreen(e.b.x, e.b.y)));
   }
 
   _cameraChanged() {
@@ -255,7 +204,7 @@ export class MapView {
     this._layout();
     this.o.onCamera?.(this.cam, this);
     // Labels wrap to the column width, so rebuild when the zoom changes a lot.
-    if (this.camera && Math.abs(Math.log(this.cam.z / (this._renderedZoom || 1))) > 0.35) {
+    if (Math.abs(Math.log(this.cam.z / (this._renderedZoom || 1))) > 0.35) {
       cancelAnimationFrame(this._rerender);
       this._rerender = requestAnimationFrame(() => {
         if (!this.g && !this.pinch) this.render();
@@ -292,31 +241,11 @@ export class MapView {
   /** Center a trick on screen, optionally at a zoom level. */
   focusOn(key, zoom) {
     const n = this.M?.map.get(key);
-    if (!n || !this.camera) return;
+    if (!n) return;
     const z = clamp(zoom ?? this.cam.z, this.o.minZoom, this.o.maxZoom);
     const bx = n.x * this.base.sx + this.base.ox;
     const by = n.y * this.base.sy + this.base.oy;
     this.animateTo({ z, tx: this.base.vw / 2 - bx * z, ty: this.base.vh * this.o.focusY - by * z });
-  }
-
-  /** Center a map point on screen. With `ms`, animate there. */
-  centerOn(x, y, zoom = this.cam.z, ms = 0) {
-    if (!this.camera) return;
-    const z = clamp(zoom, this.o.minZoom, this.o.maxZoom);
-    const bx = x * this.base.sx + this.base.ox;
-    const by = y * this.base.sy + this.base.oy;
-    this.setCamera({ z, tx: this.base.vw / 2 - bx * z, ty: this.base.vh / 2 - by * z }, ms);
-  }
-
-  setCamera(target, ms = 0) {
-    if (!this.camera) return;
-    if (ms) {
-      this.animateTo(target, ms);
-      return;
-    }
-    this._stopAnim();
-    Object.assign(this.cam, target);
-    this._cameraChanged();
   }
 
   resetCamera(animated = true) {
@@ -328,18 +257,16 @@ export class MapView {
     }
   }
 
-  zoomAt(factor, cx, cy) {
+  /** Zoom by `factor` around a point (screen coordinates inside the map). */
+  zoomAt(factor, cx, cy, ms = 0) {
     const z = clamp(this.cam.z * factor, this.o.minZoom, this.o.maxZoom);
     const k = z / this.cam.z;
-    this.cam.tx = cx - (cx - this.cam.tx) * k;
-    this.cam.ty = cy - (cy - this.cam.ty) * k;
-    this.cam.z = z;
-    this._cameraChanged();
-  }
-
-  /** The visible orb element for a key (for anchoring popovers). */
-  anchorOf(key) {
-    return this.els?.orbs.get(key)?.querySelector(".dot") || null;
+    const target = { z, tx: cx - (cx - this.cam.tx) * k, ty: cy - (cy - this.cam.ty) * k };
+    if (ms) this.animateTo(target, ms);
+    else {
+      Object.assign(this.cam, target);
+      this._cameraChanged();
+    }
   }
 
   /* ---------- input ---------- */
@@ -351,7 +278,7 @@ export class MapView {
     r.addEventListener("pointerup", (e) => this._up(e));
     r.addEventListener("pointercancel", (e) => this._up(e));
     r.addEventListener("lostpointercapture", (e) => { if (this.pointers.has(e.pointerId)) this._up(e); });
-    r.addEventListener("contextmenu", (e) => { if (e.target.closest(".orb") || this.camera) e.preventDefault(); });
+    r.addEventListener("contextmenu", (e) => e.preventDefault());
     r.addEventListener("wheel", (e) => this._wheel(e), { passive: false });
     r.addEventListener("pointerover", (e) => {
       if (e.pointerType !== "mouse" || this.g || !this.o.onHover) return;
@@ -367,34 +294,26 @@ export class MapView {
       clearTimeout(this._hoverT);
       this.o.onHoverEnd?.(orb.dataset.k);
     });
-    if (this.camera) {
-      for (const t of ["gesturestart", "gesturechange"]) r.addEventListener(t, (e) => e.preventDefault(), { passive: false });
-    }
+    for (const t of ["gesturestart", "gesturechange"]) r.addEventListener(t, (e) => e.preventDefault(), { passive: false });
   }
 
   _down(e) {
     if (e.target.closest("[data-mv-ignore]")) return;
     if (e.pointerType === "mouse" && e.button !== 0) return;
     this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (this.camera || e.pointerType === "mouse") {
-      try { this.root.setPointerCapture(e.pointerId); } catch { /* ignore */ }
-    }
+    try { this.root.setPointerCapture(e.pointerId); } catch { /* ignore */ }
     this._stopAnim();
     if (this.pointers.size >= 2) {
-      if (this.camera) this._pinchStart();
+      this._pinchStart();
       return;
     }
     const orb = e.target.closest(".orb");
     const key = orb ? orb.dataset.k : null;
     const g = (this.g = {
       id: e.pointerId, key, sx: e.clientX, sy: e.clientY, moved: false, long: false,
-      type: e.pointerType, additive: e.shiftKey || e.metaKey || e.ctrlKey, samples: [],
+      type: e.pointerType, additive: e.shiftKey || e.metaKey || e.ctrlKey,
     });
     clearTimeout(this._hoverT);
-    if (orb) {
-      orb.classList.add("pressing");
-      g.orb = orb;
-    }
     if (key !== null && this.o.onLongPress && e.pointerType !== "mouse") {
       g.lp = setTimeout(() => {
         if (this.g !== g || g.moved) return;
@@ -415,13 +334,9 @@ export class MapView {
       return;
     }
     const g = this.g;
-    if (!g || g.id !== e.pointerId) return;
+    if (!g || g.id !== e.pointerId || g.long) return;
     const dx = e.clientX - g.sx;
     const dy = e.clientY - g.sy;
-    if (g.long) {
-      this.o.onLongMove?.(g.key, dx, dy, e, g);
-      return;
-    }
     if (!g.moved) {
       if (Math.hypot(dx, dy) < 7) return;
       g.moved = true;
@@ -429,11 +344,8 @@ export class MapView {
       if (g.key !== null && this.o.orbDrag) g.mode = "drag";
       else {
         const empty = typeof this.o.emptyDrag === "function" ? this.o.emptyDrag(g.type, e, g) : this.o.emptyDrag;
-        if (empty === "pan" && this.camera) g.mode = "pan";
-        else if (g.key === null && empty === "marquee") g.mode = "marquee";
-        else g.mode = null;
+        g.mode = empty === "pan" ? "pan" : g.key === null && empty === "marquee" ? "marquee" : null;
       }
-      this._unpress(g);
       if (g.mode === "drag") this._dragStart(g);
       else if (g.mode === "pan") g.t0 = { tx: this.cam.tx, ty: this.cam.ty };
       else if (g.mode === "marquee") this._marqueeStart(g);
@@ -443,8 +355,6 @@ export class MapView {
     else if (g.mode === "pan") {
       this.cam.tx = g.t0.tx + dx;
       this.cam.ty = g.t0.ty + dy;
-      g.samples.push({ t: performance.now(), dx, dy });
-      if (g.samples.length > 6) g.samples.shift();
       this._cameraChanged();
     } else if (g.mode === "marquee") this._marqueeMove(g, e);
   }
@@ -463,13 +373,8 @@ export class MapView {
     if (!g || g.id !== e.pointerId) return;
     this.g = null;
     clearTimeout(g.lp);
-    this._unpress(g);
-    const cancelled = e.type === "pointercancel" || e.type === "lostpointercapture";
-    if (g.long) {
-      this.o.onLongEnd?.(g.key, cancelled ? null : e, g);
-      return;
-    }
-    if (cancelled) {
+    if (g.long) return;
+    if (e.type === "pointercancel" || e.type === "lostpointercapture") {
       if (g.mode === "drag") this._dragCancel(g);
       if (g.mode === "marquee") g.box?.remove();
       return;
@@ -480,27 +385,14 @@ export class MapView {
       return;
     }
     if (g.mode === "drag") this._dragEnd(g);
-    else if (g.mode === "pan") this._panEnd(g);
     else if (g.mode === "marquee") this._marqueeEnd(g);
-  }
-
-  _unpress(g) {
-    g?.orb?.classList.remove("pressing");
   }
 
   _tapEmpty(e) {
     const now = performance.now();
-    if (this.camera && now - (this._lastTap || 0) < 320) {
+    if (this.o.doubleTapEmpty === "reset" && now - (this._lastTap || 0) < 320) {
       this._lastTap = 0;
-      if (this.o.doubleTapEmpty === "reset") this.resetCamera(true);
-      else if (this.o.doubleTapEmpty === "zoom") {
-        const r = this.root.getBoundingClientRect();
-        const cx = e.clientX - r.left;
-        const cy = e.clientY - r.top;
-        const z = this.cam.z >= this.o.maxZoom * 0.7 ? 1 : Math.min(this.o.maxZoom, this.cam.z * 2);
-        const k = z / this.cam.z;
-        this.animateTo({ z, tx: cx - (cx - this.cam.tx) * k, ty: cy - (cy - this.cam.ty) * k }, 320);
-      }
+      this.resetCamera(true);
       return;
     }
     this._lastTap = now;
@@ -508,24 +400,20 @@ export class MapView {
   }
 
   _wheel(e) {
-    if (!this.camera || !(this.o.wheelZoom || this.o.wheelPan)) return;
     e.preventDefault();
     this._stopAnim();
+    if (!e.ctrlKey && !e.metaKey) {
+      // Scroll pans (Shift + scroll pans sideways on a mouse wheel).
+      const k = e.deltaMode === 1 ? 16 : 1;
+      const sideways = e.shiftKey && !e.deltaX;
+      this.cam.tx -= (sideways ? e.deltaY : e.deltaX) * k;
+      this.cam.ty -= (sideways ? 0 : e.deltaY) * k;
+      this._cameraChanged();
+      return;
+    }
+    // Pinch on a trackpad (sent as Ctrl + scroll) or Ctrl/Cmd + mouse wheel zooms.
     const r = this.root.getBoundingClientRect();
-    const k = e.deltaMode === 1 ? 16 : 1;
-    if (this.o.wheelPan && !e.ctrlKey && !e.metaKey) {
-      this.cam.tx -= (e.shiftKey && !e.deltaX ? e.deltaY : e.deltaX) * k;
-      this.cam.ty -= (e.shiftKey && !e.deltaX ? 0 : e.deltaY) * k;
-      this._cameraChanged();
-      return;
-    }
-    if (!e.ctrlKey && Math.abs(e.deltaX) > Math.abs(e.deltaY) * 0.6) {
-      this.cam.tx -= e.deltaX;
-      this.cam.ty -= e.deltaY;
-      this._cameraChanged();
-      return;
-    }
-    this.zoomAt(Math.exp(-e.deltaY * (e.ctrlKey ? 0.012 : 0.0025)), e.clientX - r.left, e.clientY - r.top);
+    this.zoomAt(Math.exp(-e.deltaY * 0.012), e.clientX - r.left, e.clientY - r.top);
   }
 
   /* ----- pinch ----- */
@@ -534,9 +422,8 @@ export class MapView {
     const g = this.g;
     if (g) {
       clearTimeout(g.lp);
-      this._unpress(g);
       if (g.mode === "drag") this._dragCancel(g);
-      if (g.long) this.o.onLongEnd?.(g.key, null, g);
+      if (g.mode === "marquee") g.box?.remove();
       this.g = null;
     }
     const [a, b] = [...this.pointers.values()];
@@ -563,25 +450,6 @@ export class MapView {
     this._cameraChanged();
   }
 
-  _panEnd(g) {
-    if (!this.o.inertia || g.samples.length < 2) return;
-    const a = g.samples[0];
-    const b = g.samples[g.samples.length - 1];
-    if (performance.now() - b.t > 90) return;
-    const dt = Math.max(8, b.t - a.t);
-    let vx = ((b.dx - a.dx) / dt) * 16;
-    let vy = ((b.dy - a.dy) / dt) * 16;
-    const step = () => {
-      vx *= 0.92;
-      vy *= 0.92;
-      this.cam.tx += vx;
-      this.cam.ty += vy;
-      this._cameraChanged();
-      this.anim = Math.hypot(vx, vy) > 0.35 ? requestAnimationFrame(step) : 0;
-    };
-    this.anim = requestAnimationFrame(step);
-  }
-
   /* ----- dragging orbs ----- */
 
   _dragStart(g) {
@@ -598,13 +466,9 @@ export class MapView {
     const kx = this.base.sx * this.cam.z;
     const ky = this.base.sy * this.cam.z;
     const M = this.M;
-    const xMin = this.camera ? this.base.x0 : 14;
-    const xMax = this.camera ? this.base.x1 : M.W - 14;
-    const yMin = this.camera ? 14 / ky : 14;
-    const yMax = this.camera ? M.H - 30 / ky : M.H - 14;
     for (const it of g.items) {
-      it.n.x = clamp(it.ox + dx / kx, xMin, xMax);
-      it.n.y = clamp(it.oy + dy / ky, yMin, yMax);
+      it.n.x = clamp(it.ox + dx / kx, this.base.x0, this.base.x1);
+      it.n.y = clamp(it.oy + dy / ky, 14 / ky, M.H - 30 / ky);
       const p = this.toScreen(it.n.x, it.n.y);
       this.els.orbs.get(it.n.k)?.setAttribute("transform", `translate(${p.x},${p.y})`);
     }
@@ -621,19 +485,16 @@ export class MapView {
 
   _dragEnd(g) {
     const moves = g.items.map((it) => ({ key: it.n.k, x: it.n.x, y: it.n.y, zone: bandAt(this.M, it.n.y) }));
-    if (this.o.onDrop) this.o.onDrop(moves, this.M, g);
-    else {
-      const changes = this.store.dropTricks(moves, autoPositions(this.M));
-      if (changes.length) this.o.onZoneChange?.(changes);
-    }
+    const changes = this.store.dropTricks(moves, autoPositions(this.M));
+    if (changes.length) this.o.onZoneChange?.(changes);
   }
 
-  /* ----- marquee select (desktop) ----- */
+  /* ----- box select ----- */
 
   _marqueeStart(g) {
     const r = this.root.getBoundingClientRect();
-    g.x0 = g.sx - r.left + this.root.scrollLeft;
-    g.y0 = g.sy - r.top + this.root.scrollTop;
+    g.x0 = g.sx - r.left;
+    g.y0 = g.sy - r.top;
     g.box = document.createElement("div");
     g.box.className = "mv-marquee";
     g.box.setAttribute("data-mv-ignore", "");
@@ -642,8 +503,8 @@ export class MapView {
 
   _marqueeMove(g, e) {
     const r = this.root.getBoundingClientRect();
-    const x = e.clientX - r.left + this.root.scrollLeft;
-    const y = e.clientY - r.top + this.root.scrollTop;
+    const x = e.clientX - r.left;
+    const y = e.clientY - r.top;
     g.rect = { x0: Math.min(x, g.x0), y0: Math.min(y, g.y0), x1: Math.max(x, g.x0), y1: Math.max(y, g.y0) };
     Object.assign(g.box.style, {
       left: `${g.rect.x0}px`, top: `${g.rect.y0}px`,

@@ -265,9 +265,9 @@ export function createStore(options = {}) {
 }
 
 class Store {
-  constructor({ key = STORAGE_KEY, seedKey = null, snapshots = true, undo = false } = {}) {
+  constructor({ key = STORAGE_KEY, snapshots = true, undo = false } = {}) {
     this.key = key;
-    this.options = { seedKey, snapshots, undo };
+    this.options = { snapshots, undo };
     this.listeners = new Set();
     this.undoStack = [];
     this.redoStack = [];
@@ -290,21 +290,16 @@ class Store {
   }
 
   _load() {
-    let text = read(this.key);
-    let seeded = false;
-    if (text == null && this.options.seedKey) {
-      text = read(this.options.seedKey);
-      seeded = text != null;
-    }
+    const text = read(this.key);
     const raw = parse(text);
     const state = migrate(raw);
     if (!state.updatedAt) state.updatedAt = Date.now();
-    if (raw && raw.schema !== SCHEMA && !seeded && this.options.snapshots) {
-      // First open after the update: keep the untouched old save, and a restore point.
-      if (read(PRE_UPDATE_KEY) == null) write(PRE_UPDATE_KEY, text);
-      this._pendingSnapshot = "Before the update";
-    }
-    if (seeded || (raw && raw.schema !== SCHEMA)) {
+    if (raw && raw.schema !== SCHEMA) {
+      if (this.options.snapshots) {
+        // First open after the update: keep the untouched old save, and a restore point.
+        if (read(PRE_UPDATE_KEY) == null) write(PRE_UPDATE_KEY, text);
+        this._pendingSnapshot = "Before the update";
+      }
       this.state = state;
       this.saveNow();
     }
@@ -332,7 +327,6 @@ class Store {
   saveNow() {
     clearTimeout(this._timer);
     this._timer = null;
-    if (this._discarded) return;
     const ok = write(this.key, JSON.stringify(this.state));
     if (ok !== !this.saveError) return;
     this.saveError = !ok;
@@ -341,14 +335,6 @@ class Store {
 
   flush() {
     if (this._timer) this.saveNow();
-  }
-
-  /** Stop saving and delete this store's save (used to reset a lab copy). */
-  discard() {
-    clearTimeout(this._timer);
-    this._timer = null;
-    this._discarded = true;
-    try { localStorage.removeItem(this.key); } catch { /* ignore */ }
   }
 
   /**

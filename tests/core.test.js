@@ -12,7 +12,7 @@ globalThis.localStorage = {
 
 const { CATALOG, autoName, keyOf, parseKey, parentKeys, stepKey, DEFAULT_INGREDIENTS } = await import("../js/core/catalog.js");
 const { createStore, migrate, parseBackup, backupFile, summarize, SCHEMA } = await import("../js/core/store.js");
-const { buildModel, routeTo, LAYOUT } = await import("../js/core/model.js");
+const { buildModel, LAYOUT } = await import("../js/core/model.js");
 
 const ings = DEFAULT_INGREDIENTS.map((i) => ({ ...i }));
 
@@ -158,20 +158,7 @@ test("undo and redo", () => {
   assert.equal(store.level("kf:1"), 2);
 });
 
-test("lab copies seed from the real map and never write to it", () => {
-  mem.clear();
-  const real = createStore();
-  real.setLevel("kf:1", "regular", 3);
-  real.flush();
-  const realText = mem.get("trickmap");
-  const lab = createStore({ key: "trickmap.lab.test", seedKey: "trickmap", snapshots: false });
-  assert.equal(lab.level("kf:1"), 3);
-  lab.setLevel("hf:1", "regular", 2);
-  lab.flush();
-  assert.equal(mem.get("trickmap"), realText);
-});
-
-test("model: fixed bands, custom positions, next stops, route", () => {
+test("model: fixed bands and next stops", () => {
   mem.clear();
   const store = createStore();
   const M = buildModel(store);
@@ -181,9 +168,6 @@ test("model: fixed bands, custom positions, next stops, route", () => {
   assert.equal(kick.side, "sun");
   assert.ok(kick.y >= M.bands.sun.y0 && kick.y < M.bands.sun.y1);
   store.setLevel("kf:1", "regular", 2);
-  const route = routeTo(buildModel(store), "bs:2,kf:1").map((n) => n.k);
-  assert.equal(route[0], "");
-  assert.equal(route[route.length - 1], "bs:2,kf:1");
   store.setPref("filter", "next");
   const next = buildModel(store);
   assert.ok(next.map.has("bs:1,kf:1"), "one step from a landed trick");
@@ -213,15 +197,4 @@ test("typing a name is one undo step, and batches are one step", () => {
   store.undo();
   assert.equal(store.level("kf:1"), 0);
   assert.equal(store.side("kf:1"), "sun");
-});
-
-test("discarding a lab copy deletes it and stops saving", () => {
-  mem.clear();
-  mem.set("trickmap", JSON.stringify({ schema: SCHEMA, levels: { "regular|kf:1": 2 } }));
-  const lab = createStore({ key: "trickmap.lab.x", seedKey: "trickmap", snapshots: false });
-  lab.setLevel("hf:1", "regular", 2);
-  lab.discard();
-  lab.saveNow();
-  assert.equal(mem.has("trickmap.lab.x"), false);
-  assert.equal(JSON.parse(mem.get("trickmap")).levels["regular|hf:1"], undefined);
 });

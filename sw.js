@@ -3,7 +3,7 @@
 // network first, so updates show up right away, and falls back to the cache
 // when offline or when the network is too slow. Fonts are cached on first use.
 
-const CACHE = "trickmap-v4";
+const CACHE = "trickmap-v5";
 const APP = [
   "./",
   "index.html",
@@ -27,6 +27,7 @@ const APP = [
   "js/app/sheet.js",
   "js/app/settings.js",
   "js/app/ingredients.js",
+  "js/app/share.js",
 ];
 const SLOW_MS = 3500;
 const ROOT = new URL("./", self.location).pathname;

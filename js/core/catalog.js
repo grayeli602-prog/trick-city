@@ -67,13 +67,6 @@ export function stepKey(key, id, delta) {
   return keyOf(recipe);
 }
 
-/** The ingredient that turns `parent` into `child`. */
-export function addedIngredient(parent, child) {
-  const p = parseKey(parent);
-  const c = parseKey(child);
-  return Object.keys(c).find((id) => (c[id] || 0) > (p[id] || 0)) || null;
-}
-
 /** Ingredient ids repeated by count, in the user's ingredient order. */
 export function unitList(recipe, ingredients) {
   const order = (id) => {

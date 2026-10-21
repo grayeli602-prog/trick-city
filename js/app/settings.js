@@ -32,12 +32,11 @@ function summaryHtml(sum) {
 }
 
 export class Settings {
-  constructor(store, { wrap, phone = false, toast = () => {}, openIngredients = () => {}, labHref = "lab/" }) {
+  constructor(store, { wrap, phone = false, toast = () => {}, openIngredients = null }) {
     this.store = store;
     this.phone = phone;
     this.toast = toast;
     this.openIngredients = openIngredients;
-    this.labHref = labHref;
     this.button = wrap.querySelector(".gear");
     this.panel = wrap.querySelector(".settings");
     this.dialog = new Sheet({ className: "dialog", label: "Backup" });
@@ -96,10 +95,9 @@ export class Settings {
         </div>
         <button class="linkrow" type="button" data-points>Restore points <span class="hint">${points ? `${points} saved` : "None yet"}</span></button>
       </div>
-      ${this.phone ? `<div class="setsec"><span class="mono">Levels</span><div class="legend">${legendHtml()}</div>
-        <button class="linkrow" type="button" data-ings>Ingredients and colors</button></div>` : ""}
       <div class="setsec">
-        <a class="linkrow" href="${this.labHref}">Try test versions</a>
+        ${this.phone ? `<span class="mono">Levels</span><div class="legend">${legendHtml()}</div>` : ""}
+        ${this.openIngredients ? `<button class="linkrow" type="button" data-ings>Ingredients and colors</button>` : ""}
         <p class="savestate${this.store.saveError ? " error" : ""}">${this.store.saveError ? "Couldn't save on this device. Storage may be full or turned off. Save a backup now." : "Saves automatically on this device."}</p>
       </div>`;
   }
@@ -119,7 +117,7 @@ export class Settings {
       this.showPoints();
     } else if (t.hasAttribute("data-ings")) {
       this.close();
-      this.openIngredients();
+      this.openIngredients?.();
     }
   }
 

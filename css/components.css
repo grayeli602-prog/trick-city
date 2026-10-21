@@ -1,19 +1,14 @@
-/* Shared components: map view, stance grid, bottom sheet, trick breakdown,
-   foot editor, restore points and the ingredient editor. Used by the app and
-   every lab version. */
+/* Components: map view, stance grid, bottom sheet, trick breakdown, foot
+   editor, restore points and the ingredient editor. */
 
 /* ---------- map view ---------- */
-.mv { position: relative; }
+.mv { position: relative; overflow: hidden; touch-action: none; overscroll-behavior: contain; }
 .mv svg { display: block; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .mv text { font-family: var(--sans); }
 .mv .mv-bandtext { font-family: var(--mono); fill: var(--muted); letter-spacing: .6px; }
-.mv .mv-coltext { font-family: var(--mono); fill: var(--muted); opacity: .7; }
 .mv .orb { cursor: grab; touch-action: none; }
 .mv .orb.dragging { cursor: grabbing; }
-.mv-fit, .mv-contain { overflow: hidden; touch-action: none; overscroll-behavior: contain; }
-.mv-marquee { position: absolute; border: 1px solid var(--fg); background: color-mix(in srgb, var(--fg) 8%, transparent); pointer-events: none; z-index: 3; }
-.mv .mv-flow { stroke-dasharray: 1 11; animation: mv-flow .9s linear infinite; pointer-events: none; }
-@keyframes mv-flow { to { stroke-dashoffset: -12; } }
+.mv-marquee { position: absolute; border: 1px solid var(--acc, var(--fg)); background: color-mix(in srgb, var(--acc, var(--fg)) 12%, transparent); pointer-events: none; z-index: 3; }
 
 /* ---------- stance grid ---------- */
 .grid { display: flex; flex-direction: column; min-width: 340px; }
