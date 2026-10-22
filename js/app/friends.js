@@ -541,14 +541,13 @@ export class FriendsSheet {
     const who = inv?.name ? esc(inv.name) : "A friend";
     const nameField = `<label class="fr-field"><span class="mono">Your name</span><input data-myname value="${esc(me.name)}" placeholder="What friends see" autocomplete="off" maxlength="40" enterkeyhint="done"></label>`;
     let body;
-    if (!a && c.problem === "not-configured") {
-      body = `<p class="hint">Friends isn't set up on this site yet. It needs a free database connected to the site in Vercel.</p>`;
-    } else if (!a) {
+    if (!a) {
       const iosSafari = invOk && isIOS() && !standalone();
       body = `
         ${invOk ? `<div class="fr-invite"><div><b>${who} invited you</b><span>Code ${prettyCode(inv.code)}</span></div></div>` : ""}
         ${inv?.missing ? `<p class="hint error">That invite code doesn't exist anymore. Ask for a new one.</p>` : ""}
         <p>See each other's maps and compare tricks. Anyone you give your code to can add you. Your map syncs to a private online copy whenever you change it.</p>
+        ${c.problem === "not-configured" ? `<p class="hint error">Friends isn't set up on this site yet. It needs a free database connected to the site in Vercel.</p>` : ""}
         ${iosSafari ? `<div class="fr-steps"><b>Using the Home Screen app?</b>
             <span>Safari and the Home Screen app keep separate maps. Open Trick Map from your Home Screen (or add it: Share, then Add to Home Screen), go to Friends and add code <b>${prettyCode(inv.code)}</b>.</span>
             <div class="row"><button class="btn" type="button" data-copycode="${inv.code}">Copy code</button></div></div>` : ""}
