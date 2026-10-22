@@ -198,3 +198,45 @@ test("typing a name is one undo step, and batches are one step", () => {
   assert.equal(store.level("kf:1"), 0);
   assert.equal(store.side("kf:1"), "sun");
 });
+
+test("the friends key survives undo, redo and restoring an older version", () => {
+  mem.clear();
+  const store = createStore({ undo: true });
+  store.setLevel("kf:1", "regular", 2);
+  store.setAccount({ code: "K7Q2M9XA", key: "k".repeat(32) });
+  store.markBackedUp();
+  store.undo();
+  assert.equal(store.state.account.code, "K7Q2M9XA");
+  assert.ok(store.state.meta.lastBackup, "undo doesn't forget the last backup");
+  store.redo();
+  assert.equal(store.state.account.code, "K7Q2M9XA");
+  store.replaceState({ schema: SCHEMA, levels: {} });
+  assert.equal(store.state.account.code, "K7Q2M9XA", "older version without a key keeps this one");
+  const file = parseBackup(backupFile(store.state).text);
+  assert.equal(file.state.account.code, "K7Q2M9XA", "backups carry the key to a new phone");
+});
+
+test("friends see the map but not notes or the private key", async () => {
+  const { shareable } = await import("../js/core/store.js");
+  mem.clear();
+  const store = createStore();
+  store.setAccount({ code: "K7Q2M9XA", key: "k".repeat(32) });
+  store.transact("note", (s) => { s.notes["kf:1"] = "private"; });
+  const snap = shareable(store.state);
+  assert.equal(snap.account, undefined);
+  assert.equal(snap.notes, undefined);
+  assert.equal(snap.meta, undefined);
+  assert.ok(snap.levels && snap.ingredients && snap.profile);
+});
+
+test("a friend's map is read-only and never saved", () => {
+  mem.clear();
+  const friend = createStore({ key: null, initial: { schema: SCHEMA, levels: { "regular|kf:1": 3 } }, readOnly: true });
+  assert.equal(friend.level("kf:1"), 3);
+  assert.equal(friend.setLevel("kf:1", "regular", 0).ok, false);
+  friend.setSide("kf:1", "moon");
+  friend.dropTricks([{ key: "kf:1", x: 10, y: 10, zone: "moon" }]);
+  assert.equal(friend.side("kf:1"), "sun");
+  assert.equal(friend.level("kf:1"), 3);
+  assert.equal(mem.size, 0, "nothing written to storage");
+});

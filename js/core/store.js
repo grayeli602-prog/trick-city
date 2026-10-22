@@ -58,6 +58,7 @@ export function defaultState() {
     history: [],    // { t, k, st, from, to } level changes, newest last
     profile: { name: "", handle: "" },
     meta: { lastBackup: null },
+    account: null,  // { code, key } once friends are turned on
   };
 }
 
@@ -159,7 +160,30 @@ export function normalize(input) {
     out.profile.handle = typeof s.profile.handle === "string" ? s.profile.handle.slice(0, 40) : "";
   }
   if (isObj(s.meta) && finite(s.meta.lastBackup)) out.meta.lastBackup = s.meta.lastBackup;
+  if (isObj(s.account) && /^[2-9A-HJ-NP-Z]{8}$/.test(s.account.code) && typeof s.account.key === "string" && s.account.key.length >= 20) {
+    out.account = { code: s.account.code, key: s.account.key.slice(0, 200) };
+  }
   return out;
+}
+
+/** The part of the map friends can see: no notes, backups or private key. */
+export function shareable(state) {
+  return {
+    schema: SCHEMA,
+    prefs: { layout: state.prefs.layout, palette: state.prefs.palette, rider: state.prefs.rider },
+    ingredients: state.ingredients,
+    sideColors: state.sideColors,
+    levels: state.levels,
+    positions: state.positions,
+    sides: state.sides,
+    names: state.names,
+    feet: state.feet,
+    custom: state.custom,
+    hidden: state.hidden,
+    history: state.history.slice(-200),
+    profile: state.profile,
+    updatedAt: state.updatedAt,
+  };
 }
 
 /** Shape of the first standalone version (single index.html), mapped to schema 2. */
@@ -265,18 +289,23 @@ export function createStore(options = {}) {
 }
 
 class Store {
-  constructor({ key = STORAGE_KEY, snapshots = true, undo = false } = {}) {
+  /**
+   * `key` is where it saves (null: nowhere). `initial` starts from a given
+   * state instead of storage. `readOnly` refuses every change (a friend's map).
+   */
+  constructor({ key = STORAGE_KEY, snapshots = true, undo = false, initial = null, readOnly = false } = {}) {
     this.key = key;
-    this.options = { snapshots, undo };
+    this.readOnly = readOnly;
+    this.options = { snapshots: snapshots && !!key, undo: undo && !readOnly };
     this.listeners = new Set();
     this.undoStack = [];
     this.redoStack = [];
     this.saveError = false;
     this._timer = null;
-    this.state = this._load();
-    if (snapshots) this._autoSnapshot();
+    this.state = initial ? migrate(initial) : this._load();
+    if (this.options.snapshots) this._autoSnapshot();
 
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && key) {
       window.addEventListener("storage", (e) => {
         if (e.key !== this.key || !e.newValue) return;
         this.state = migrate(parse(e.newValue));
@@ -327,6 +356,7 @@ class Store {
   saveNow() {
     clearTimeout(this._timer);
     this._timer = null;
+    if (!this.key) return;
     const ok = write(this.key, JSON.stringify(this.state));
     if (ok !== !this.saveError) return;
     this.saveError = !ok;
@@ -343,6 +373,7 @@ class Store {
    * With `coalesce`, quick repeats of the same change (typing a name) share one undo step.
    */
   transact(label, fn, { source = null, undoable = true, coalesce = false } = {}) {
+    if (this.readOnly) return false;
     if (this._batch) {
       if (fn(this.state) === false) return false;
       this._batch.changed = true;
@@ -372,11 +403,19 @@ class Store {
   undoLabel() { return this.undoStack[this.undoStack.length - 1]?.label || null; }
   redoLabel() { return this.redoStack[this.redoStack.length - 1]?.label || null; }
 
+  /** Undo and redo change the map, never the friends key or backup date. */
+  _swap(json) {
+    const next = migrate(JSON.parse(json));
+    next.account = this.state.account;
+    next.meta = { ...this.state.meta };
+    this.state = next;
+  }
+
   undo() {
     const step = this.undoStack.pop();
     if (!step) return null;
     this.redoStack.push({ label: step.label, before: JSON.stringify(this.state) });
-    this.state = migrate(JSON.parse(step.before));
+    this._swap(step.before);
     this.save();
     this.emit({ source: "undo", label: step.label });
     return step.label;
@@ -386,7 +425,7 @@ class Store {
     const step = this.redoStack.pop();
     if (!step) return null;
     this.undoStack.push({ label: step.label, before: JSON.stringify(this.state) });
-    this.state = migrate(JSON.parse(step.before));
+    this._swap(step.before);
     this.save();
     this.emit({ source: "redo", label: step.label });
     return step.label;
@@ -455,6 +494,7 @@ class Store {
 
   /** Returns { ok: true } or { ok: false, reason: "want-limit", wants } when 3 wants are taken. */
   setLevel(key, stance, value) {
+    if (this.readOnly) return { ok: false, reason: "read-only" };
     const lk = levelKey(key, stance);
     const current = this.state.levels[lk] || 0;
     if (value === current) return { ok: true, changed: false };
@@ -589,6 +629,13 @@ class Store {
     this.transact("Side color", (s) => { s.sideColors[side] = color.toLowerCase(); }, { coalesce: `side:${side}`, ...opts });
   }
 
+  /** Friends: the friend code and private key for this map (null turns friends off). */
+  setAccount(account) {
+    this.transact("Friends", (s) => {
+      s.account = account ? { code: account.code, key: account.key } : null;
+    }, { undoable: false, source: "account" });
+  }
+
   setProfile(patch, opts = {}) {
     this.transact("Profile", (s) => {
       if (typeof patch.name === "string") s.profile.name = patch.name.slice(0, 40);
@@ -657,9 +704,12 @@ class Store {
   /** Replace everything (restore). The current map is kept as a restore point first. */
   replaceState(next, reason = "Before restoring a backup") {
     this.takeSnapshot(reason);
-    const lastBackup = this.state.meta.lastBackup;
+    const { lastBackup } = this.state.meta;
+    const { account } = this.state;
     this.state = migrate(next);
     this.state.meta.lastBackup = this.state.meta.lastBackup || lastBackup;
+    // A backup from another phone brings its friends key along; an older restore point keeps this one.
+    this.state.account = this.state.account || account;
     this.state.updatedAt = Date.now();
     this.undoStack = [];
     this.redoStack = [];

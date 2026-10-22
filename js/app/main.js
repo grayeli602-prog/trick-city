@@ -1,6 +1,7 @@
 // Trick Map app: search, undo and redo with a history list, filters, box
 // select and move many at once, an inspector with exact positions, align
-// and spread, keyboard shortcuts, settings with backups, and a share sheet.
+// and spread, keyboard shortcuts, settings with backups, a share sheet, and
+// friends (see each other's maps, view only).
 
 import { createStore, requestPersistence } from "../core/store.js";
 import { buildModel, bandAt, autoPositions, mapKeys } from "../core/model.js";
@@ -14,6 +15,7 @@ import { Sheet } from "./sheet.js";
 import { Settings } from "./settings.js";
 import { IngredientsEditor } from "./ingredients.js";
 import { ShareSheet } from "./share.js";
+import { FriendsClient, FriendView, FriendsSheet } from "./friends.js";
 
 const PHONE = document.documentElement.classList.contains("phone");
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -290,7 +292,11 @@ ingSheet.body.addEventListener("click", (e) => { if (e.target.closest("[data-clo
 
 const share = new ShareSheet(store, { toast, phone: PHONE });
 
-const sheets = [bdSheet, inspSheet, ingSheet, share.sheet];
+const friends = new FriendsClient(store);
+const friendView = new FriendView(store, friends, { phone: PHONE, onClose: () => openFriends() });
+const friendsSheet = new FriendsSheet(friends, friendView, { toast, phone: PHONE });
+
+const sheets = [bdSheet, inspSheet, ingSheet, share.sheet, friendsSheet.sheet];
 function closeSheets(except = null) {
   for (const s of sheets) if (s !== except && s.isOpen) s.close({ silent: true });
 }
@@ -324,6 +330,13 @@ function openShare() {
   picker.hide();
   closeSheets(share.sheet);
   share.open();
+}
+
+function openFriends() {
+  picker.hide();
+  settings.close();
+  closeSheets(friendsSheet.sheet);
+  friendsSheet.open();
 }
 
 const settings = new Settings(store, { wrap: $(".gearwrap"), phone: PHONE, toast, openIngredients });
@@ -630,6 +643,7 @@ $("#undoBtn").addEventListener("click", doUndo);
 $("#redoBtn").addEventListener("click", doRedo);
 $("#newTrick").addEventListener("click", newTrick);
 $("#shareBtn").addEventListener("click", openShare);
+$("#friendsBtn").addEventListener("click", openFriends);
 $("#selMode").addEventListener("click", () => {
   selectMode = !selectMode;
   $("#selMode").setAttribute("aria-pressed", String(selectMode));
@@ -692,6 +706,8 @@ function commands() {
     { label: p.rider === "goofy" ? "I ride: Regular" : "I ride: Goofy", run: () => store.setPref("rider", p.rider === "goofy" ? "regular" : "goofy") },
     { label: "New trick", kbd: "N", run: newTrick },
     { label: "Share story image or profile card", run: openShare },
+    { label: "Friends", hint: friends.friends.length ? `${friends.friends.length}` : "", run: openFriends },
+    { label: "Invite a friend", run: () => (friends.account ? friendsSheet.shareInvite() : openFriends()) },
     { label: "Save a backup", run: () => settings.saveBackup() },
     { label: "Restore points", run: () => settings.showPoints() },
     { label: "Ingredients and colors", run: openIngredients },
@@ -837,6 +853,14 @@ $("#helpBtn").addEventListener("click", showKeys);
 const typing = (e) => e.target.closest?.("input, textarea, select, [contenteditable]");
 document.addEventListener("keydown", (e) => {
   const mod = e.metaKey || e.ctrlKey;
+  // A friend's map is on top: nothing should change your map underneath it.
+  if (friendView.isOpen) {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      friendView.close();
+    } else if (!mod && !typing(e) && (e.key === "f" || e.key === "F")) friendView.map.resetCamera();
+    return;
+  }
   if (mod && e.key.toLowerCase() === "k") {
     e.preventDefault();
     pal ? closePalette() : openPalette();
@@ -923,6 +947,17 @@ function applyCompact() {
 }
 compactQuery.addEventListener?.("change", applyCompact);
 applyCompact();
+
+// Invite links look like ?friend=K7Q2M9XA. Take the code and tidy the address bar.
+const params = new URLSearchParams(location.search);
+const invited = params.get("friend");
+if (invited !== null) {
+  params.delete("friend");
+  const rest = params.toString();
+  try { history.replaceState(null, "", `${location.pathname}${rest ? `?${rest}` : ""}${location.hash}`); } catch { /* ignore */ }
+  friendsSheet.takeInvite(invited);
+}
+friends.start();
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
