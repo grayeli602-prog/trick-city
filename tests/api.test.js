@@ -94,8 +94,12 @@ test("the Vercel entry answers 503 until the database is connected", async () =>
   const r = await handleRequest(new Request("https://x/api/friends", { method: "POST", body: "{}" }), {});
   assert.equal(r.status, 503);
   assert.equal((await r.json()).error, "not-configured");
-  const g = await handleRequest(new Request("https://x/api/friends"), { KV_REST_API_URL: "u", KV_REST_API_TOKEN: "t" });
-  assert.equal(g.status, 405);
+  const g = await handleRequest(new Request("https://x/api/friends"), {});
+  assert.deepEqual(await g.json(), { service: "trick-map-friends", configured: false }, "GET is a health check");
+  const g2 = await handleRequest(new Request("https://x/api/friends"), { KV_REST_API_URL: "https://a.upstash.io", KV_REST_API_TOKEN: "t" });
+  assert.equal((await g2.json()).configured, true);
+  const put = await handleRequest(new Request("https://x/api/friends", { method: "PUT", body: "{}" }), {});
+  assert.equal(put.status, 405);
 });
 
 test("finds the database settings Vercel adds, with or without a prefix", async () => {

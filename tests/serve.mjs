@@ -26,6 +26,7 @@ const send = (res, status, body, type = "application/json") => {
 createServer(async (req, res) => {
   const url = new URL(req.url, "http://localhost");
   if (url.pathname === "/api/friends") {
+    if (req.method === "GET") return send(res, 200, '{"service":"trick-map-friends","configured":true}');
     if (req.method !== "POST") return send(res, 405, '{"error":"post-only"}');
     let text = "";
     for await (const chunk of req) text += chunk;

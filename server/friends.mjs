@@ -213,8 +213,10 @@ export async function handleRequest(request, env = process.env) {
     status,
     headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
   });
-  if (request.method !== "POST") return json(405, { error: "post-only" });
   const db = redisEnv(env);
+  // Open /api/friends in a browser to check that it's running and the database is connected.
+  if (request.method === "GET") return json(200, { service: "trick-map-friends", configured: !!db });
+  if (request.method !== "POST") return json(405, { error: "post-only" });
   if (!db) return json(503, { error: "not-configured" });
   const { url, token } = db;
   const length = Number(request.headers.get("content-length") || 0);
