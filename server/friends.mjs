@@ -207,18 +207,26 @@ export function redisEnv(env) {
   return null;
 }
 
-/** Vercel entry: POST /api/friends with a JSON body. */
-export async function handleRequest(request, env = process.env) {
+/** Vercel entry: POST /api/friends with a JSON body. `connect` is swapped out in tests. */
+export async function handleRequest(request, env = process.env, { connect = upstash } = {}) {
   const json = (status, body) => new Response(JSON.stringify(body), {
     status,
     headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
   });
   const db = redisEnv(env);
-  // Open /api/friends in a browser to check that it's running and the database is connected.
-  if (request.method === "GET") return json(200, { service: "trick-map-friends", configured: !!db });
+  // Open /api/friends in a browser to check that it's running and can reach the database.
+  if (request.method === "GET") {
+    if (!db) return json(200, { service: "trick-map-friends", configured: false });
+    let database = "ok";
+    try {
+      if ((await connect(db.url, db.token).cmd("PING")) !== "PONG") database = "error";
+    } catch {
+      database = "error";
+    }
+    return json(200, { service: "trick-map-friends", configured: true, database });
+  }
   if (request.method !== "POST") return json(405, { error: "post-only" });
   if (!db) return json(503, { error: "not-configured" });
-  const { url, token } = db;
   const length = Number(request.headers.get("content-length") || 0);
   if (length > MAX_SNAPSHOT * 2) return json(413, { error: "too-big" });
   let body;
@@ -228,6 +236,6 @@ export async function handleRequest(request, env = process.env) {
     return json(400, { error: "bad-json" });
   }
   const ip = (request.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "anon";
-  const { status, body: out } = await createFriendsApi(upstash(url, token))(body, { ip });
+  const { status, body: out } = await createFriendsApi(connect(db.url, db.token))(body, { ip });
   return json(status, out);
 }

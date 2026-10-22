@@ -8,6 +8,7 @@ export function fakeRedis() {
   };
   const run = ([name, ...a]) => {
     switch (name.toUpperCase()) {
+      case "PING": return "PONG";
       case "GET": return kv.has(a[0]) ? kv.get(a[0]) : null;
       case "SET": {
         const nx = a.slice(2).map((x) => String(x).toUpperCase()).includes("NX");

@@ -96,8 +96,15 @@ test("the Vercel entry answers 503 until the database is connected", async () =>
   assert.equal((await r.json()).error, "not-configured");
   const g = await handleRequest(new Request("https://x/api/friends"), {});
   assert.deepEqual(await g.json(), { service: "trick-map-friends", configured: false }, "GET is a health check");
-  const g2 = await handleRequest(new Request("https://x/api/friends"), { KV_REST_API_URL: "https://a.upstash.io", KV_REST_API_TOKEN: "t" });
-  assert.equal((await g2.json()).configured, true);
+  const env = { KV_REST_API_URL: "https://a.upstash.io", KV_REST_API_TOKEN: "t" };
+  const g2 = await handleRequest(new Request("https://x/api/friends"), env, { connect: () => fakeRedis() });
+  assert.deepEqual(await g2.json(), { service: "trick-map-friends", configured: true, database: "ok" });
+  const broken = { cmd: async () => { throw new Error("redis http 401"); } };
+  const g3 = await handleRequest(new Request("https://x/api/friends"), env, { connect: () => broken });
+  assert.equal((await g3.json()).database, "error", "a wrong token shows up in the check");
+  const post = await handleRequest(new Request("https://x/api/friends", { method: "POST", body: '{"action":"join","name":"Sam"}' }), env, { connect: () => fakeRedis() });
+  assert.equal(post.status, 200);
+  assert.match((await post.json()).code, /^[2-9A-HJ-NP-Z]{8}$/);
   const put = await handleRequest(new Request("https://x/api/friends", { method: "PUT", body: "{}" }), {});
   assert.equal(put.status, 405);
 });
