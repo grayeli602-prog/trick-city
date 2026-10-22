@@ -356,7 +356,7 @@ class Store {
     this._timer = null;
     if (!this.key) return;
     const ok = write(this.key, JSON.stringify(this.state));
-    if (ok !== !this.saveError) return;
+    if (ok !== this.saveError) return; // only announce when saving starts or stops working
     this.saveError = !ok;
     this.emit({ source: "save-status" });
   }

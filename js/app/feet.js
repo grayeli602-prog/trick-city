@@ -2,9 +2,23 @@
 // Positions are stored for a regular rider (nose on the left) and mirrored
 // on screen for goofy riders.
 
-const SHOE = "M0,-50 C13,-50 19,-39 18,-24 C17,-8 15,8 15,24 C15,41 9,50 0,50 C-9,50 -15,41 -15,24 C-15,8 -17,-8 -18,-24 C-19,-39 -13,-50 0,-50Z";
-const TOE_CAP = "M0,-50 C13,-50 19,-39 18,-28 L-18,-28 C-19,-39 -13,-50 0,-50Z";
-const INSOLE = "M0,-38 C8,-38 10,-30 10,-22 L10,8 C10,14 6,16 0,16 C-6,16 -10,14 -10,8 L-10,-22 C-10,-30 -8,-38 0,-38Z";
+// One shoe seen from above, toe up, centered on 0,0: a black skate shoe with a
+// white sole, white laces and a light collar. Our own drawing, no brand's.
+const SOLE = "M0,-50 C13,-50 19,-39 18,-24 C17,-8 15,8 15,24 C15,41 9,50 0,50 C-9,50 -15,41 -15,24 C-15,8 -17,-8 -18,-24 C-19,-39 -13,-50 0,-50Z";
+const UPPER = "M0,-44 C10.4,-44 15.2,-34.3 14.4,-21.1 C13.6,-7 12,7 12,21.1 C12,36.1 7.2,44 0,44 C-7.2,44 -12,36.1 -12,21.1 C-12,7 -13.6,-7 -14.4,-21.1 C-15.2,-34.3 -10.4,-44 0,-44Z";
+const TONGUE = "M-6.5,-27 C-6.5,-31 6.5,-31 6.5,-27 L7,12 C7,15.5 -7,15.5 -7,12Z";
+const COLLAR = "M0,15.5 C7.2,15.5 9.5,21 9.5,28 C9.5,36.5 5.8,41 0,41 C-5.8,41 -9.5,36.5 -9.5,28 C-9.5,21 -7.2,15.5 0,15.5Z";
+const LACES = [-23, -16, -9, -2, 5];
+const LABEL_Y = 28.5;
+const shoeArt = [
+  `<path class="sole" d="${SOLE}" fill="#f3f2ed" stroke="#101010" stroke-width="1.5"/>`,
+  `<path d="${UPPER}" fill="#151515"/>`,
+  `<path d="M-12,-30.5 C-5,-35.5 5,-35.5 12,-30.5" fill="none" stroke="#454545" stroke-width="1" stroke-dasharray="2 1.6"/>`,
+  `<path d="${TONGUE}" fill="#232323"/>`,
+  ...LACES.map((y) => `<circle cx="-9.2" cy="${y}" r="1" fill="#777"/><circle cx="9.2" cy="${y}" r="1" fill="#777"/>`),
+  ...LACES.map((y) => `<path d="M-8.4,${y} L8.4,${y + 1.2}" stroke="#f3f2ed" stroke-width="2.3" stroke-linecap="round"/>`),
+  `<path d="${COLLAR}" fill="#e7e5df" stroke="#0c0c0c" stroke-width="1.2"/>`,
+].join("");
 const BOLTS = [86, 100, 260, 274].flatMap((x) => [[x, 68], [x, 92]]);
 
 export class FeetEditor {
@@ -33,16 +47,11 @@ export class FeetEditor {
   /** Stored (regular) coordinates to screen coordinates, and back. */
   _view(p) { return this.goofy ? { x: 360 - p.x, y: p.y, a: -p.a } : p; }
 
-  _shoe(id, label, fill) {
+  _shoe(id, label) {
     const p = this._view(this.feet[id]);
-    return `<g class="shoe" data-shoe="${id}" transform="translate(${p.x},${p.y}) rotate(${p.a})">
-      <path d="${SHOE}" fill="${fill}" stroke="#1a1a1a" stroke-width="2"/>
-      <path d="${TOE_CAP}" fill="#b9b3a8" stroke="#1a1a1a" stroke-width="1.5"/>
-      <text x="0" y="-36" text-anchor="middle" font-size="9" font-weight="700" fill="#1a1a1a" font-family="Geist Mono, monospace">TOE</text>
-      <rect x="-8" y="42" width="16" height="9" rx="3" fill="#1a1a1a"/>
-      <path d="${INSOLE}" fill="none" stroke="#1a1a1a" stroke-width="1" opacity=".35"/>
-      ${[-26, -18, -10, -2].map((y) => `<line x1="-6" y1="${y}" x2="6" y2="${y}" stroke="#1a1a1a" stroke-width="1.3" opacity=".5"/>`).join("")}
-      <text x="0" y="36" text-anchor="middle" font-size="14" font-weight="600" fill="#1a1a1a" transform="rotate(${-p.a},0,36)">${label}</text>
+    return `<g class="shoe${this.selected === id ? " on" : ""}" data-shoe="${id}" transform="translate(${p.x},${p.y}) rotate(${p.a})">
+      ${shoeArt}
+      <text x="0" y="${LABEL_Y + 4.3}" text-anchor="middle" font-size="12" font-weight="700" fill="#151515" font-family="Geist, system-ui, sans-serif" transform="rotate(${-p.a},0,${LABEL_Y})">${label}</text>
     </g>`;
   }
 
@@ -57,7 +66,7 @@ export class FeetEditor {
       ${label(338, "end", this.goofy ? "NOSE" : "TAIL")}
       <text x="180" y="20" text-anchor="middle" font-size="10" font-family="Geist Mono, monospace" fill="#5a4300" letter-spacing="1">TOE SIDE</text>
       ${label(180, "middle", "HEEL SIDE")}
-      ${this._shoe("b", "B", "#f4f1ea")}${this._shoe("f", "F", "#ffffff")}
+      ${this._shoe("b", "B")}${this._shoe("f", "F")}
     </svg>`;
   }
 
@@ -65,7 +74,7 @@ export class FeetEditor {
     const p = this._view(this.feet[id]);
     const g = this.svg.querySelector(`[data-shoe="${id}"]`);
     g.setAttribute("transform", `translate(${p.x},${p.y}) rotate(${p.a})`);
-    g.querySelector("text:last-of-type").setAttribute("transform", `rotate(${-p.a},0,36)`);
+    g.querySelector("text:last-of-type").setAttribute("transform", `rotate(${-p.a},0,${LABEL_Y})`);
   }
 
   _select(id) {
@@ -73,9 +82,7 @@ export class FeetEditor {
     this.range.hidden = false;
     this.range.value = this._view(this.feet[id]).a;
     this.hint.textContent = `Rotate ${id === "f" ? "front" : "back"} foot`;
-    for (const shoe of this.svg.querySelectorAll(".shoe")) {
-      shoe.querySelector("path").setAttribute("stroke-width", shoe.dataset.shoe === id ? "3.5" : "2");
-    }
+    for (const shoe of this.svg.querySelectorAll(".shoe")) shoe.classList.toggle("on", shoe.dataset.shoe === id);
   }
 
   _rotate() {

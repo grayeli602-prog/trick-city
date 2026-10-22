@@ -72,6 +72,7 @@
 /* ---------- foot editor ---------- */
 .deck { width: 100%; max-width: 520px; display: block; border-radius: 14px; background: #e9a800; touch-action: none; }
 .deck .shoe { cursor: grab; touch-action: none; }
+.deck .shoe.on .sole { stroke: var(--acc, #0d99ff); stroke-width: 3; }
 .footctl { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .footctl input[type=range] { flex: 1; min-width: 140px; accent-color: var(--fg); }
 

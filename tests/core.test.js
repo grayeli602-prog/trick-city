@@ -240,3 +240,28 @@ test("a friend's map is read-only and never saved", () => {
   assert.equal(friend.level("kf:1"), 3);
   assert.equal(mem.size, 0, "nothing written to storage");
 });
+
+test("a failed save is announced once, and saves that work stay quiet", () => {
+  mem.clear();
+  const store = createStore();
+  const seen = [];
+  store.subscribe((info) => seen.push(info.source));
+  const news = () => seen.filter((x) => x === "save-status").length;
+  store.setLevel("kf:1", "regular", 2);
+  store.saveNow();
+  assert.equal(news(), 0, "nothing to announce when saving works");
+  const real = globalThis.localStorage.setItem;
+  globalThis.localStorage.setItem = () => { throw new Error("full"); };
+  try {
+    store.setLevel("hf:1", "regular", 2);
+    store.saveNow();
+    store.saveNow();
+  } finally {
+    globalThis.localStorage.setItem = real;
+  }
+  assert.equal(store.saveError, true, "shows Couldn't save");
+  assert.equal(news(), 1);
+  store.saveNow();
+  assert.equal(store.saveError, false, "recovers when storage works again");
+  assert.equal(news(), 2);
+});

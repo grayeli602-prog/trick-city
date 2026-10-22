@@ -1,10 +1,9 @@
-// Trick breakdown: name, side, ingredients, add-ons, how it connects, and
-// foot position. Renders into any container (the main sheet or a lab host).
+// Trick breakdown: name, side, ingredients, add-ons and how it connects.
+// Foot placement lives in the inspector.
 
 import { SIDES, parseKey, parentKeys, stepKey, sizeOf, BASE_COLOR } from "../core/catalog.js";
 import { buildModel } from "../core/model.js";
 import { esc, ingredientCount, gray } from "../core/draw.js";
-import { FeetEditor } from "./feet.js";
 
 export class Breakdown {
   constructor(store, { stance = "regular", onNavigate = () => {}, onClose = null, toast = () => {}, closeButton = true } = {}) {
@@ -88,13 +87,11 @@ export class Breakdown {
       </div>
       <div class="sec"><span class="mono">Built from</span><div class="chips">${parents.length ? parents.map(chip).join("") : `<span class="hint">Nothing. This is the base.</span>`}</div></div>
       <div class="sec"><span class="mono">Leads to</span><div class="chips">${children.length ? children.map(chip).join("") : `<span class="hint">Nothing on the map yet. Add an ingredient above.</span>`}</div></div>
-      <div class="sec"><span class="mono">Foot position · ${this.stance}</span><div data-feet></div></div>
       <div class="row">
         <button class="btn small" type="button" data-resetpos>Reset position</button>
         ${key ? `<button class="btn small" type="button" data-remove>Remove from map</button>` : ""}
         ${store.state.names[key] ? `<button class="btn small" type="button" data-resetname>Use auto name</button>` : ""}
       </div>`;
-    this.feet = new FeetEditor(this.el.querySelector("[data-feet]"), store, key, this.stance);
     if (focusedName) this.el.querySelector("[data-name]")?.focus();
   }
 

@@ -1,7 +1,7 @@
 // Trick Map app: search, undo and redo with a history list, filters, box
-// select and move many at once, an inspector with exact positions, align
-// and spread, keyboard shortcuts, settings with backups, a share sheet, and
-// friends (see each other's maps, view only).
+// select and move many at once, an inspector with levels and foot placement,
+// align and spread, keyboard shortcuts, settings with backups, a share sheet,
+// and friends (see each other's maps, view only).
 
 import { createStore, requestPersistence } from "../core/store.js";
 import { buildModel, bandAt, autoPositions, mapKeys } from "../core/model.js";
@@ -15,6 +15,7 @@ import { Sheet } from "./sheet.js";
 import { Settings } from "./settings.js";
 import { IngredientsEditor } from "./ingredients.js";
 import { ShareSheet } from "./share.js";
+import { FeetEditor } from "./feet.js";
 import { FriendsClient, FriendView, FriendsSheet } from "./friends.js";
 
 const PHONE = document.documentElement.classList.contains("phone");
@@ -174,13 +175,6 @@ const visibleKeys = () => (M ? M.nodes.filter((n) => !filterOn() || passes(n)).m
 /* ---------- edits ---------- */
 
 const autoPos = () => autoPositions(M);
-
-function moveTo(key, x, y) {
-  if (!M?.map.get(key)) return;
-  x = clamp(Math.round(x), 14, M.W - 14);
-  y = clamp(Math.round(y), 14, M.H - 14);
-  zoneToast(store.dropTricks([{ key, x, y, zone: bandAt(M, y) }], autoPos(), { label: `Move ${store.name(key)}` }));
-}
 
 function nudge(dx, dy) {
   const nodes = [...sel].map((k) => M.map.get(k)).filter(Boolean);
@@ -371,7 +365,6 @@ function inspectorHtml() {
     const ids = Object.keys(recipe).sort((a, b) => store.ingIndex(a) - store.ingIndex(b));
     const children = M.edges.filter((e) => e.a.k === key).map((e) => e.b.k);
     const parents = parentKeys(key).filter((p) => M.map.has(p) || CATALOG.includes(p));
-    const side = store.side(key);
     const custom = key in s.positions && s.prefs.layout === "custom";
     return `
       <div class="px-sec px-title-in">
@@ -379,13 +372,9 @@ function inspectorHtml() {
         <span class="px-key">${esc(key || "ollie")} · ${ingredientCount(Object.values(recipe).reduce((a, b) => a + b, 0)).toLowerCase()}</span>
         ${ids.length ? `<div class="px-chips" style="margin-top:6px">${ids.map((id) => `<span class="chip"><i style="background:${gray(store.ingColor(id))}"></i>${esc(store.ing(id)?.name || id)}${recipe[id] > 1 ? ` ×${recipe[id]}` : ""}</span>`).join("")}</div>` : ""}
       </div>
-      <div class="px-sec">
-        <div class="px-h">Position${custom ? "" : " · auto"}</div>
-        <div class="px-xy">
-          <label class="px-num"><b>X</b><input data-pos="x" type="number" step="1" value="${Math.round(n.x)}" aria-label="X position"></label>
-          <label class="px-num"><b>Y</b><input data-pos="y" type="number" step="1" value="${Math.round(n.y)}" aria-label="Y position"></label>
-        </div>
-        <div class="px-kv"><span>Side</span><div class="px-seg3">${SIDE_ORDER.map((v) => `<button type="button" data-side="${v}" aria-pressed="${side === v}">${SIDES[v]}</button>`).join("")}</div></div>
+      <div class="px-sec px-feet">
+        <div class="px-h">Feet · ${STANCE_LABEL[stance]}</div>
+        <div data-feet></div>
       </div>
       <div class="px-sec">
         <div class="px-h">Levels <span style="text-transform:none;letter-spacing:0">${PHONE ? "hold to set" : "hover to set"}</span></div>
@@ -425,6 +414,8 @@ function renderInspector() {
   const focused = document.activeElement;
   if (focused?.matches?.("[data-name]") && target.contains(focused)) return;
   target.innerHTML = inspectorHtml();
+  const feet = target.querySelector("[data-feet]");
+  if (feet && sel.size === 1) new FeetEditor(feet, store, [...sel][0], stance);
 }
 
 function bindInspector(root) {
@@ -447,26 +438,11 @@ function bindInspector(root) {
     if (t.matches("[data-name]")) {
       t.blur();
       renderInspector();
-    } else if (t.dataset.pos && sel.size === 1) {
-      const key = [...sel][0];
-      const n = M.map.get(key);
-      const v = Number(t.value);
-      if (!n || !Number.isFinite(v)) {
-        renderInspector();
-        return;
-      }
-      if (t.dataset.pos === "x") moveTo(key, v, n.y);
-      else moveTo(key, n.x, v);
     }
   });
   root.addEventListener("keydown", (e) => {
     const t = e.target;
     if (t.matches("[data-name]") && e.key === "Enter") t.blur();
-    if (t.dataset?.pos && e.shiftKey && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
-      e.preventDefault();
-      t.value = String(Number(t.value) + (e.key === "ArrowUp" ? 10 : -10));
-      t.dispatchEvent(new Event("change", { bubbles: true }));
-    }
   });
   // Levels: hover a stance row (PC) or hold it (phone) to open the level picker.
   let hoverT = 0;
@@ -928,6 +904,16 @@ function render() {
 
 store.subscribe((info) => {
   if (info.source === "undo" || info.source === "redo" || info.source === "other-tab" || info.source === "restore") pruneSel();
+  if (info.source === "save-status") {
+    renderStatus();
+    return;
+  }
+  if (info.source === "feet") {
+    // The shoes already moved on screen; rebuilding the inspector would cut a drag short.
+    renderToolbar();
+    renderSide();
+    return;
+  }
   if (info.source === "name" || info.source === "profile") {
     if (view === "map") map.render();
     else grid.render();

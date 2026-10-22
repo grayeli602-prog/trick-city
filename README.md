@@ -2,7 +2,7 @@
 
 Map your flatground skate tricks, in black and white. Every trick is an ollie plus ingredients (flips, shoves, 180s, body varials as add-ons), split into Sun, Earth and Moon sides.
 
-- **Map:** drag orbs, hover (PC) or hold (phone) to set a level, tap to select. The inspector shows levels for every stance, exact position, side, and what it's built from.
+- **Map:** drag orbs, hover (PC) or hold (phone) to set a level, tap to select. The inspector shows levels for every stance, where your feet go on the board, and what it's built from.
 - **Search:** Cmd/Ctrl K or `/` finds any trick or command.
 - **Undo and redo**, with a history list on PC.
 - **Filters:** side, level, wants. Select several (Shift click, box select, or Select mode on a phone), drag them together, align and spread them out.
