@@ -69,7 +69,7 @@ test("migrates the old save without losing anything", () => {
   const s = migrate(legacy);
   assert.equal(s.schema, SCHEMA);
   assert.equal(s.prefs.filter, "next");
-  assert.equal(s.prefs.palette, "bw");
+  assert.equal(s.prefs.palette, undefined, "black and white only: no colors setting");
   assert.equal(s.prefs.layout, "custom", "saved positions mean custom layout");
   assert.deepEqual(s.positions["bs:1"], { x: 181, y: 250 });
   assert.equal(s.levels["regular|kf:1"], 3);

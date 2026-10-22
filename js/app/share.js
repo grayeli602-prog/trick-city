@@ -4,7 +4,7 @@
 import { buildModel, LAYOUT } from "../core/model.js";
 import { SIDES, SIDE_ORDER, WANT_LIMIT } from "../core/catalog.js";
 import { splitLevelKey } from "../core/store.js";
-import { esc, edgePath, orbSvg, tone, wrapWords } from "../core/draw.js";
+import { esc, edgePath, orbSvg, gray, wrapWords } from "../core/draw.js";
 import { Sheet } from "./sheet.js";
 
 const FONT = `Geist, -apple-system, "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif`;
@@ -55,7 +55,6 @@ function mapArt(store, t, box, id, { labelSize, orbK, lineW }) {
   const ox = box.x + (box.w - (x1 - x0) * k) / 2 - x0 * k;
   const oy = box.y + (box.h - M.H * k) / 2;
   const P = (n) => ({ x: n.x * k + ox, y: n.y * k + oy });
-  const palette = store.pref("palette");
   const lit = (svg) => svg.replace(/var\(--(bg|fg|faint|muted)\)/g, (m, v) => t[v]);
   let g = `<defs><clipPath id="${id}-clip"><rect x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}" rx="${box.r}"/></clipPath></defs><g clip-path="url(#${id}-clip)">`;
   for (const side of SIDE_ORDER) {
@@ -67,11 +66,11 @@ function mapArt(store, t, box, id, { labelSize, orbK, lineW }) {
   }
   for (const e of M.edges) {
     const strong = e.a.lv >= 2 && e.b.lv >= 2;
-    g += `<path d="${edgePath(P(e.a), P(e.b))}" fill="none" stroke="${tone(e.c, palette)}" stroke-width="${lineW}" stroke-linejoin="round" stroke-linecap="round" opacity="${strong ? 0.95 : 0.4}"/>`;
+    g += `<path d="${edgePath(P(e.a), P(e.b))}" fill="none" stroke="${gray(e.c)}" stroke-width="${lineW}" stroke-linejoin="round" stroke-linecap="round" opacity="${strong ? 0.95 : 0.4}"/>`;
   }
   for (const n of M.nodes) {
     const p = P(n);
-    g += `<g transform="translate(${p.x.toFixed(1)},${p.y.toFixed(1)}) scale(${orbK})">${lit(orbSvg(n.lv, tone(n.col, palette), palette))}</g>`;
+    g += `<g transform="translate(${p.x.toFixed(1)},${p.y.toFixed(1)}) scale(${orbK})">${lit(orbSvg(n.lv))}</g>`;
   }
   for (const n of M.nodes) {
     if (n.lv < 2) continue;

@@ -2,7 +2,7 @@
 
 import { SIDES, SIDE_ORDER, STANCES, STANCE_SHORT, LEVELS } from "../core/catalog.js";
 import { buildModel } from "../core/model.js";
-import { esc, dotSvg, bandIconSvg, tone } from "../core/draw.js";
+import { esc, dotSvg, bandIconSvg, gray } from "../core/draw.js";
 
 export class GridView {
   constructor(root, store, { onOpen = () => {}, onCell = () => {}, onCellLeave = () => {}, hover = false, include = () => [] } = {}) {
@@ -47,7 +47,7 @@ export class GridView {
       for (const n of rows) {
         const name = store.name(n.k, "regular");
         rowsShown++;
-        h += `<div class="grow" role="row"><button class="gname" type="button" data-open="${esc(n.k)}"><i style="background:${tone(n.col, store.pref("palette"))}"></i><span>${esc(name)}</span></button>${STANCES.map((st) => {
+        h += `<div class="grow" role="row"><button class="gname" type="button" data-open="${esc(n.k)}"><i style="background:${gray(n.col)}"></i><span>${esc(name)}</span></button>${STANCES.map((st) => {
           const lv = store.level(n.k, st);
           return `<button class="gcell" type="button" data-k="${esc(n.k)}" data-st="${st}" aria-label="${esc(name)}, ${st}: ${LEVELS[lv]}">${dotSvg(lv)}</button>`;
         }).join("")}</div>`;

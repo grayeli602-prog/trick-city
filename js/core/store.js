@@ -24,7 +24,6 @@ const PREF_VALUES = {
   view: ["map", "grid"],
   filter: ["all", "next"],
   layout: ["auto", "custom"],
-  palette: ["color", "bw"],
   rider: ["regular", "goofy"],
 };
 
@@ -44,7 +43,7 @@ export function defaultState() {
   return {
     schema: SCHEMA,
     updatedAt: 0,
-    prefs: { view: "map", filter: "all", layout: "auto", palette: "color", rider: "regular" },
+    prefs: { view: "map", filter: "all", layout: "auto", rider: "regular" },
     ingredients: DEFAULT_INGREDIENTS.map((i) => ({ ...i })),
     sideColors: { ...DEFAULT_SIDE_COLORS },
     levels: {},     // "regular|kf:1" -> 1 want, 2 landed, 3 locked in
@@ -170,7 +169,7 @@ export function normalize(input) {
 export function shareable(state) {
   return {
     schema: SCHEMA,
-    prefs: { layout: state.prefs.layout, palette: state.prefs.palette, rider: state.prefs.rider },
+    prefs: { layout: state.prefs.layout, rider: state.prefs.rider },
     ingredients: state.ingredients,
     sideColors: state.sideColors,
     levels: state.levels,
@@ -205,7 +204,6 @@ function fromLegacy(raw) {
       view: raw.view,
       filter: raw.filter,
       layout: raw.layout || (Object.keys(positions).length ? "custom" : "auto"),
-      palette: raw.palette,
       rider: raw.rider,
     },
     ingredients: raw.ings,

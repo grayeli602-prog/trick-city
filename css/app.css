@@ -246,7 +246,7 @@ kbd { font: 500 10.5px var(--mono); color: var(--muted); border: 1px solid var(-
 .fv-views button { padding: 5px 10px; font-size: 12.5px; }
 .fv-chips { display: flex; align-items: center; gap: 6px; padding: 8px max(10px, var(--safe-r)) 8px max(10px, var(--safe-l)); border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; min-height: 45px; }
 .fv-chips::-webkit-scrollbar { display: none; }
-.fv-chips .hint { white-space: nowrap; }
+.fv-chips .px-fsep { align-self: stretch; }
 .fv-ro { margin-left: auto; padding-left: 10px; flex: 0 0 auto; }
 .fv-stage { position: relative; min-height: 0; }
 .fv-map { position: absolute; inset: 0; }

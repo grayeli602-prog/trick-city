@@ -6,7 +6,7 @@
 import { createStore, requestPersistence } from "../core/store.js";
 import { buildModel, bandAt, autoPositions, mapKeys } from "../core/model.js";
 import { SIDES, SIDE_ORDER, STANCES, STANCE_LABEL, STANCE_SHORT, LEVELS, WANT_LIMIT, CATALOG, parseKey, parentKeys } from "../core/catalog.js";
-import { esc, dotSvg, bandIconSvg, tone, ingredientCount } from "../core/draw.js";
+import { esc, dotSvg, bandIconSvg, gray, ingredientCount } from "../core/draw.js";
 import { MapView } from "./mapview.js";
 import { GridView } from "./grid.js";
 import { LevelPicker } from "./levelpicker.js";
@@ -343,7 +343,7 @@ const settings = new Settings(store, { wrap: $(".gearwrap"), phone: PHONE, toast
 
 /* ---------- inspector ---------- */
 
-const chip = (k) => `<button class="chip" type="button" data-sel="${esc(k)}"><i style="background:${tone(store.color(k), store.pref("palette"))}"></i>${esc(store.name(k, stance))}</button>`;
+const chip = (k) => `<button class="chip" type="button" data-sel="${esc(k)}"><i style="background:${gray(store.color(k))}"></i>${esc(store.name(k, stance))}</button>`;
 
 function inspectorHtml() {
   const s = store.state;
@@ -377,7 +377,7 @@ function inspectorHtml() {
       <div class="px-sec px-title-in">
         <input data-name value="${esc(store.name(key, stance))}" aria-label="Trick name" autocomplete="off" spellcheck="false">
         <span class="px-key">${esc(key || "ollie")} · ${ingredientCount(Object.values(recipe).reduce((a, b) => a + b, 0)).toLowerCase()}</span>
-        ${ids.length ? `<div class="px-chips" style="margin-top:6px">${ids.map((id) => `<span class="chip"><i style="background:${store.ingColor(id)}"></i>${esc(store.ing(id)?.name || id)}${recipe[id] > 1 ? ` ×${recipe[id]}` : ""}</span>`).join("")}</div>` : ""}
+        ${ids.length ? `<div class="px-chips" style="margin-top:6px">${ids.map((id) => `<span class="chip"><i style="background:${gray(store.ingColor(id))}"></i>${esc(store.ing(id)?.name || id)}${recipe[id] > 1 ? ` ×${recipe[id]}` : ""}</span>`).join("")}</div>` : ""}
       </div>
       <div class="px-sec">
         <div class="px-h">Position${custom ? "" : " · auto"}</div>
@@ -700,7 +700,6 @@ function commands() {
     { label: "Clear filters", run: () => applyPreset("all"), ok: filterOn() },
     ...STANCES.filter((st) => st !== stance).map((st) => ({ label: `Stance: ${STANCE_LABEL[st]}`, run: () => setStance(st) })),
     { label: `View: ${view === "map" ? "Stance grid" : "Map"}`, run: () => setView(view === "map" ? "grid" : "map") },
-    { label: p.palette === "bw" ? "Colors: Color" : "Colors: Black and white", run: () => store.setPref("palette", p.palette === "bw" ? "color" : "bw") },
     { label: p.layout === "custom" ? "Layout: Auto" : "Layout: Custom", run: () => store.setPref("layout", p.layout === "custom" ? "auto" : "custom") },
     { label: p.filter === "next" ? "Show: Everything" : "Show: Next stops", run: () => store.setPref("filter", p.filter === "next" ? "all" : "next") },
     { label: p.rider === "goofy" ? "I ride: Regular" : "I ride: Goofy", run: () => store.setPref("rider", p.rider === "goofy" ? "regular" : "goofy") },
@@ -718,13 +717,13 @@ function commands() {
 
 function trickItems() {
   const items = (M?.nodes || []).map((n) => ({
-    trick: n.k, label: n.name, color: tone(n.col, store.pref("palette")),
+    trick: n.k, label: n.name, color: gray(n.col),
     hint: `${SIDES[n.side]} · ${LEVELS[n.lv]}`,
   }));
   const shown = new Set(items.map((i) => i.trick));
   for (const k of store.state.hidden) {
     if (shown.has(k)) continue;
-    items.push({ trick: k, label: store.name(k, stance), color: store.color(k), hint: "Removed · adds it back", hidden: true });
+    items.push({ trick: k, label: store.name(k, stance), color: gray(store.color(k)), hint: "Removed · adds it back", hidden: true });
   }
   return items;
 }

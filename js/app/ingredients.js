@@ -1,4 +1,4 @@
-// Ingredient and color editor: rename, recolor, pick a side, add your own.
+// Ingredient editor: rename, pick a side, add your own, and the Sun and Moon colors.
 
 import { SIDES } from "../core/catalog.js";
 import { esc } from "../core/draw.js";
@@ -17,8 +17,7 @@ export class IngredientsEditor {
 
     root.addEventListener("input", (e) => {
       const t = e.target;
-      if (t.dataset.color) store.updateIngredient(t.dataset.color, { color: t.value }, { source: "ing-live" });
-      else if (t.dataset.name) store.updateIngredient(t.dataset.name, { name: t.value }, { source: "ing-live" });
+      if (t.dataset.name) store.updateIngredient(t.dataset.name, { name: t.value }, { source: "ing-live" });
       else if (t.dataset.sidecolor) store.setSideColor(t.dataset.sidecolor, t.value, { source: "ing-live" });
     });
     root.addEventListener("change", (e) => {
@@ -43,7 +42,6 @@ export class IngredientsEditor {
     const s = this.store.state;
     this.rows.innerHTML = s.ingredients.map((i) => `
       <div class="irow">
-        <input type="color" data-color="${esc(i.id)}" value="${i.color}" aria-label="Color for ${esc(i.name)}">
         <input type="text" data-name="${esc(i.id)}" value="${esc(i.name)}" aria-label="Ingredient name" autocomplete="off">
         <select data-side="${esc(i.id)}" aria-label="Side for ${esc(i.name)}">${Object.entries(SIDES).map(([v, l]) => `<option value="${v}" ${i.side === v ? "selected" : ""}>${l}</option>`).join("")}</select>
         ${i.builtin ? "<span></span>" : `<button class="del" type="button" data-del="${esc(i.id)}" aria-label="Delete ${esc(i.name)}">×</button>`}

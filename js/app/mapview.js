@@ -9,7 +9,7 @@
 
 import { buildModel, bandAt, autoPositions, LAYOUT } from "../core/model.js";
 import { SIDES, SIDE_ORDER } from "../core/catalog.js";
-import { esc, edgePath, orbSvg, bandIcon, tone, wrapWords, SELECT_RING, BAND_FILL } from "../core/draw.js";
+import { esc, edgePath, orbSvg, bandIcon, gray, wrapWords, SELECT_RING, BAND_FILL } from "../core/draw.js";
 
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const reducedMotion = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -117,7 +117,6 @@ export class MapView {
 
   render() {
     const store = this.store;
-    const { palette } = store.state.prefs;
     const colors = store.state.sideColors;
     const M = (this.M = buildModel(store, { stance: this.o.stance, include: this.o.include() || [] }));
     this._project(M);
@@ -133,9 +132,9 @@ export class MapView {
     M.edges.forEach((e, i) => {
       const st = this.o.edgeStyle?.(e) || {};
       const opacity = st.opacity ?? (e.b.lv >= 2 && e.a.lv >= 2 ? 0.95 : 0.45);
-      s += `<path data-e="${i}" fill="none" stroke="${st.color || tone(e.c, palette)}" stroke-width="${st.width || 2}" stroke-linejoin="round" stroke-linecap="round" opacity="${opacity}"/>`;
+      s += `<path data-e="${i}" fill="none" stroke="${st.color || gray(e.c)}" stroke-width="${st.width || 2}" stroke-linejoin="round" stroke-linecap="round" opacity="${opacity}"/>`;
     });
-    s += `</g><g class="mv-orbs">${M.nodes.map((n) => this._orb(n, M, palette, selected)).join("")}</g></svg>`;
+    s += `</g><g class="mv-orbs">${M.nodes.map((n) => this._orb(n, M, selected)).join("")}</g></svg>`;
 
     this.canvas.innerHTML = s;
     this.svg = this.canvas.firstElementChild;
@@ -150,7 +149,7 @@ export class MapView {
     this.o.onRender?.(M, this);
   }
 
-  _orb(n, M, palette, selected) {
+  _orb(n, M, selected) {
     const d = this.o.decorate?.(n) || {};
     const ring = d.ring ?? (selected ? selected.has(n.k) : false);
     const strong = ring || d.strong;
@@ -165,7 +164,7 @@ export class MapView {
     }
     return `<g class="orb${d.cls ? ` ${d.cls}` : ""}" data-k="${esc(n.k)}"${d.dim != null ? ` opacity="${d.dim}"` : ""}>` +
       `<circle class="hit" r="24" fill="transparent"/>${ring ? SELECT_RING : ""}` +
-      `<g class="dot" transform="scale(${this.o.orbScale})">${orbSvg(n.lv, tone(n.col, palette), palette)}</g>` +
+      `<g class="dot" transform="scale(${this.o.orbScale})">${orbSvg(n.lv)}</g>` +
       `${d.extra || ""}${label}</g>`;
   }
 

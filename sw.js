@@ -3,7 +3,7 @@
 // network first, so updates show up right away, and falls back to the cache
 // when offline or when the network is too slow. Fonts are cached on first use.
 
-const CACHE = "trickmap-v6";
+const CACHE = "trickmap-v7";
 const APP = [
   "./",
   "index.html",

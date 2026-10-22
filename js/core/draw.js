@@ -1,5 +1,6 @@
-// Small drawing helpers shared by every view: escaping, colors, orbs,
+// Small drawing helpers shared by every view: escaping, grays, orbs,
 // subway-style connection lines, and label wrapping. They return SVG strings.
+// Lines and orbs are black and white: a line's gray comes from its ingredient.
 
 import { LEVELS } from "./catalog.js";
 
@@ -17,7 +18,6 @@ export function gray(hex) {
   return `#${h}${h}${h}`;
 }
 
-export const tone = (hex, palette) => (palette === "bw" ? gray(hex) : hex);
 
 /** Subway-style line: straight, one 45° bend, straight. Falls back to a curve when going left. */
 export function edgePath(a, b) {
@@ -33,16 +33,12 @@ export function edgePath(a, b) {
 }
 const r1 = (v) => Math.round(v * 10) / 10;
 
-/**
- * Orb for a level: dashed ring (not yet), ring (want it), solid (landed),
- * solid with a halo in the trick's color (locked in). Black in B&W mode.
- */
-export function orbSvg(level, color, palette) {
+/** Orb for a level: dashed ring (not yet), ring (want it), solid (landed), solid with a ring (locked in). */
+export function orbSvg(level) {
   if (level === 0) return `<circle r="7" fill="var(--bg)" stroke="var(--faint)" stroke-width="1.5" stroke-dasharray="2 2"/>`;
   if (level === 1) return `<circle r="7" fill="var(--bg)" stroke="var(--fg)" stroke-width="1.6"/>`;
   if (level === 2) return `<circle r="7" fill="var(--fg)"/>`;
-  if (palette === "bw") return `<circle r="11" fill="none" stroke="var(--fg)" stroke-width="1.5"/><circle r="8" fill="var(--fg)"/>`;
-  return `<circle r="11" fill="none" stroke="${color}" stroke-width="1.5"/><circle r="7" fill="${color}"/>`;
+  return `<circle r="11" fill="none" stroke="var(--fg)" stroke-width="1.5"/><circle r="8" fill="var(--fg)"/>`;
 }
 
 export const SELECT_RING = `<circle r="24" fill="none" stroke="var(--fg)" stroke-width="1.5" stroke-dasharray="3 3"/>`;
@@ -69,7 +65,7 @@ export function dotSvg(level, size = 18) {
 
 export function legendHtml() {
   return LEVELS.map((label, i) =>
-    `<span><svg width="34" height="34" viewBox="-17 -17 34 34" aria-hidden="true">${orbSvg(i, "#888888", "color")}</svg>${label}</span>`).join("");
+    `<span><svg width="34" height="34" viewBox="-17 -17 34 34" aria-hidden="true">${orbSvg(i)}</svg>${label}</span>`).join("");
 }
 
 /** Split a label into at most two lines that fit `maxW` pixels at font size `fs`. */

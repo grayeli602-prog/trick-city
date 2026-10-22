@@ -4,7 +4,7 @@
 
 import { createStore, shareable } from "../core/store.js";
 import { SIDES, STANCES, STANCE_LABEL, STANCE_SHORT, LEVELS, parentKeys } from "../core/catalog.js";
-import { esc, dotSvg, orbSvg, tone } from "../core/draw.js";
+import { esc, dotSvg, orbSvg } from "../core/draw.js";
 import { MapView } from "./mapview.js";
 import { GridView } from "./grid.js";
 import { Sheet } from "./sheet.js";
@@ -304,6 +304,7 @@ export class FriendView {
     this.onClose = onClose;
     this.stance = "regular";
     this.view = "map";
+    this.show = "next"; // "next": landed tricks and what's one step away; "all": every trick
     this.sel = null;
     this.friend = null;
     this.el = document.createElement("section");
@@ -332,6 +333,7 @@ export class FriendView {
       orbDrag: false,
       emptyDrag: "pan", // nothing to drag here, so any drag moves the map
       doubleTapEmpty: phone ? "reset" : null,
+      include: () => (this.sel !== null ? [this.sel] : []),
       decorate: (n) => {
         const on = n.k === this.sel;
         return { ring: false, strong: on, extra: on ? `<circle class="px-selring" r="13.5"/>` : "" };
@@ -340,6 +342,7 @@ export class FriendView {
       onTapEmpty: () => this.showTrick(null),
     });
     this.grid = new GridView(this.$("[data-grid]"), this.store, {
+      include: () => (this.sel !== null ? [this.sel] : []),
       onOpen: (key) => this.showTrick(key),
       onCell: (key, st) => this.showTrick(key, st),
     });
@@ -354,12 +357,9 @@ export class FriendView {
         if (this.sel !== null) this.showTrick(this.sel);
       }
     });
-    // Your levels are in the trick card, and your Colors setting applies here too.
+    // Your levels are in the trick card.
     me.subscribe(() => {
-      if (!this.isOpen) return;
-      this.store.state.prefs.palette = me.pref("palette");
-      this.render();
-      if (this.sel !== null) this.showTrick(this.sel);
+      if (this.isOpen && this.sel !== null) this.showTrick(this.sel);
     });
     // The back gesture closes this instead of leaving the app.
     window.addEventListener("popstate", () => {
@@ -372,12 +372,13 @@ export class FriendView {
   _load(friend) {
     this.friend = friend;
     this.store = createStore({ key: null, readOnly: true, initial: friend.snapshot || {} });
-    this.store.state.prefs.palette = this.me.pref("palette");
+    this.store.state.prefs.filter = this.show;
     this.map.store = this.store;
     this.grid.store = this.store;
   }
 
   open(friend) {
+    this.show = "next";
     this._load(friend);
     this.sel = null;
     this.stance = "regular";
@@ -412,9 +413,13 @@ export class FriendView {
     this.$("[data-name]").textContent = f.name || "Friend";
     this.$("[data-sub]").textContent = [handle, `${f.stats.landed} landed`, `updated ${ago(f.updatedAt)}`].filter(Boolean).join(" · ");
     this.$("[data-views]").innerHTML = [["map", "Map"], ["grid", "Grid"]].map(([v, l]) => `<button type="button" data-view="${v}" aria-pressed="${this.view === v}">${l}</button>`).join("");
-    this.$("[data-chips]").innerHTML = `${this.view === "map"
-      ? STANCES.map((st) => `<button class="px-fchip" type="button" data-stance="${st}" aria-pressed="${this.stance === st}">${STANCE_LABEL[st]}</button>`).join("")
-      : `<span class="hint">Every stance side by side. Tap one to compare.</span>`}<span class="fv-ro mono">View only</span>`;
+    const chip = (attr, v, label, on) => `<button class="px-fchip" type="button" ${attr}="${v}" aria-pressed="${on}">${label}</button>`;
+    this.$("[data-chips]").innerHTML = [
+      chip("data-show", "next", "Next stops", this.show === "next"),
+      chip("data-show", "all", "All tricks", this.show === "all"),
+      this.view === "map" ? `<span class="px-fsep"></span>${STANCES.map((st) => chip("data-stance", st, STANCE_LABEL[st], this.stance === st)).join("")}` : "",
+      `<span class="fv-ro mono">View only</span>`,
+    ].join("");
     this.$("[data-map]").hidden = this.view !== "map";
     this.$("[data-grid]").hidden = this.view !== "grid";
     if (this.view === "map") this.map.render();
@@ -432,13 +437,12 @@ export class FriendView {
       return;
     }
     const them = this.store;
-    const palette = them.pref("palette");
     const focus = stance || this.stance;
     const from = parentKeys(key).filter((p) => !them.isAddonOnly(p)).map((p) => (p === "" ? "Ollie" : them.name(p)));
     card.hidden = false;
     card.innerHTML = `
       <div class="fv-card-top">
-        <svg width="30" height="30" viewBox="-15 -15 30 30" aria-hidden="true">${orbSvg(them.level(key, focus), tone(them.color(key), palette), palette)}</svg>
+        <svg width="30" height="30" viewBox="-15 -15 30 30" aria-hidden="true">${orbSvg(them.level(key, focus))}</svg>
         <div class="t"><b>${esc(them.name(key, focus))}</b><span>${SIDES[them.side(key)]}${from.length ? ` · from ${esc(from.join(" + "))}` : ""}</span></div>
         <button class="x" type="button" data-close aria-label="Close">×</button>
       </div>
@@ -468,6 +472,10 @@ export class FriendView {
       this.map.o.stance = this.stance;
       this.render();
       if (this.sel !== null) this.showTrick(this.sel);
+    } else if (t.dataset.show) {
+      this.show = t.dataset.show;
+      this.store.state.prefs.filter = this.show;
+      this.render();
     }
   }
 }

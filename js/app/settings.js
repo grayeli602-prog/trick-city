@@ -7,7 +7,6 @@ import { Sheet } from "./sheet.js";
 const PREFS = [
   ["filter", "Show", [["all", "Everything"], ["next", "Next stops"]]],
   ["layout", "Layout", [["auto", "Auto"], ["custom", "Custom"]]],
-  ["palette", "Colors", [["color", "Color"], ["bw", "Black and white"]]],
   ["rider", "I ride", [["regular", "Regular"], ["goofy", "Goofy"]]],
 ];
 
