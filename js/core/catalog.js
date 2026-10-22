@@ -3,7 +3,9 @@
 //
 // A trick is an ollie plus ingredients. Its recipe is { ingredientId: count }
 // (count 1 or 2) and its key is the sorted recipe, e.g. "bs:1,kf:1" for a
-// varial kickflip. The ollie is the empty key "".
+// varial kickflip. The ollie is the empty key "". A few ingredients are
+// foundations of their own (the shove-its without pop): they start a line
+// like the ollie does instead of coming from it.
 
 export const SIDES = Object.freeze({ sun: "Sun", earth: "Earth", moon: "Moon" });
 export const SIDE_ORDER = Object.freeze(["sun", "earth", "moon"]);
@@ -27,10 +29,15 @@ export const DEFAULT_INGREDIENTS = Object.freeze([
   // Foot kick-outs: named after the trick ("Ollie north", "Kickflip south").
   { id: "north", name: "North", color: "#8f8f8f", side: "earth", builtin: true, after: true, max: 1 },
   { id: "south", name: "South", color: "#a6a6a6", side: "earth", builtin: true, after: true, max: 1 },
-  // Shove-its without pop: the board spins under your feet, no ollie.
-  { id: "npbs", name: "Shove-it", color: "#7c7c7c", side: "sun", builtin: true, max: 1 },
-  { id: "npfs", name: "FS shove-it", color: "#b4b4b4", side: "moon", builtin: true, max: 1 },
+  // Shove-its without pop: the board spins under your feet, no ollie, so they're foundations.
+  { id: "npbs", name: "Shove-it", color: "#7c7c7c", side: "sun", builtin: true, max: 1, root: true },
+  { id: "npfs", name: "FS shove-it", color: "#b4b4b4", side: "moon", builtin: true, max: 1, root: true },
 ]);
+
+const ROOT_IDS = new Set(DEFAULT_INGREDIENTS.filter((i) => i.root).map((i) => i.id));
+
+/** True when a recipe starts from a foundation other than the ollie. */
+export const rooted = (recipe) => Object.keys(recipe).some((id) => ROOT_IDS.has(id) && recipe[id] > 0);
 
 /** Most of an ingredient a trick can have (most can be doubled, kick-outs and no-pop shove-its can't). */
 export const maxCount = (ingredient) => ingredient?.max || MAX_COUNT;
@@ -59,14 +66,20 @@ export function parseKey(key) {
 
 export const sizeOf = (recipe) => Object.values(recipe).reduce((a, b) => a + b, 0);
 
-/** Keys of the tricks this one is built from (one ingredient less). */
+/** Steps from a foundation: the map column. The ollie and the no-pop shove-its are 0. */
+export const depthOf = (recipe) => sizeOf(recipe) - (rooted(recipe) ? 1 : 0);
+
+/** Keys of the tricks this one is built from (one ingredient less). Foundations have none. */
 export function parentKeys(key) {
   const recipe = parseKey(key);
-  return Object.keys(recipe).map((id) => {
-    const parent = { ...recipe };
-    parent[id] -= 1;
-    return keyOf(parent);
-  });
+  const fromRoot = rooted(recipe);
+  return Object.keys(recipe)
+    .map((id) => {
+      const parent = { ...recipe };
+      parent[id] -= 1;
+      return keyOf(parent);
+    })
+    .filter((k) => !(fromRoot && k === ""));
 }
 
 /** Key of the trick with one more (delta 1) or one less (delta -1) of an ingredient. */

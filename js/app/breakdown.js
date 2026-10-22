@@ -1,7 +1,7 @@
 // Trick breakdown: name, side, ingredients, add-ons and how it connects.
 // Foot placement lives in the inspector.
 
-import { SIDES, parseKey, parentKeys, stepKey, sizeOf, maxCount, BASE_COLOR } from "../core/catalog.js";
+import { SIDES, parseKey, parentKeys, stepKey, depthOf, rooted, maxCount, BASE_COLOR } from "../core/catalog.js";
 import { buildModel } from "../core/model.js";
 import { esc, ingredientCount, gray } from "../core/draw.js";
 
@@ -57,7 +57,7 @@ export class Breakdown {
     this.el.innerHTML = `
       <div class="shead">
         <div style="flex:1;min-width:0">
-          <div class="mono">${ingredientCount(sizeOf(recipe))} · ${this.stance} · ${SIDES[side]}</div>
+          <div class="mono">${ingredientCount(depthOf(recipe))} · ${this.stance} · ${SIDES[side]}</div>
           <input class="nameinput" data-name value="${esc(store.name(key, this.stance))}" aria-label="Trick name" autocomplete="off">
         </div>
         ${this.closeButton ? `<button class="x" type="button" data-close aria-label="Close">×</button>` : ""}
@@ -68,7 +68,7 @@ export class Breakdown {
       </div>
       <div class="sec">
         <span class="mono">Breakdown</span>
-        <div class="ing"><i style="background:${BASE_COLOR}"></i><span class="nm">Ollie <small>base</small></span></div>
+        ${rooted(recipe) ? "" : `<div class="ing"><i style="background:${BASE_COLOR}"></i><span class="nm">Ollie <small>base</small></span></div>`}
         ${ids.map((id) => {
           const ing = store.ing(id) || { name: id, color: "#888888", side: "earth" };
           return `<div class="ing"><i style="background:${gray(ing.color)}"></i><span class="nm">${esc(ing.name)}<small>${SIDES[ing.side]}</small></span>

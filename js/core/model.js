@@ -4,7 +4,7 @@
 // Columns step right by COLW for every extra ingredient. Custom positions
 // saved by the user use these same coordinates.
 
-import { CATALOG, SIDE_ORDER, parseKey, sizeOf, parentKeys, unitList } from "./catalog.js";
+import { CATALOG, SIDE_ORDER, parseKey, depthOf, parentKeys, unitList } from "./catalog.js";
 
 export const LAYOUT = Object.freeze({ COLW: 200, ROWH: 68, X0: 44, BANDPAD: 44, BANDH: 380, MAPW: 44 + 5 * 200 + 40 });
 
@@ -30,15 +30,18 @@ export function buildModel(store, { stance = "regular", filter = store.pref("fil
   const s = store.state;
   let nodes = [...mapKeys(store, stance, include)].map((k) => {
     const r = parseKey(k);
-    return { k, r, fl: sizeOf(r), side: store.side(k), lv: store.level(k, stance), name: store.name(k, stance), col: store.color(k) };
+    return { k, r, fl: depthOf(r), side: store.side(k), lv: store.level(k, stance), name: store.name(k, stance), col: store.color(k) };
   });
 
   if (filter === "next") {
-    // Landed tricks plus everything one ingredient away from them.
+    // Foundations, landed tricks, and everything one ingredient away from them.
     const got = new Set([""]);
     for (const n of nodes) if (n.lv >= 2) got.add(n.k);
     const forced = new Set(include);
-    nodes = nodes.filter((n) => got.has(n.k) || forced.has(n.k) || parentKeys(n.k).some((p) => got.has(p)));
+    nodes = nodes.filter((n) => {
+      const parents = parentKeys(n.k);
+      return !parents.length || got.has(n.k) || forced.has(n.k) || parents.some((p) => got.has(p));
+    });
   }
 
   const map = new Map(nodes.map((n) => [n.k, n]));

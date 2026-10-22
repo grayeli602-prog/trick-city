@@ -107,6 +107,7 @@ export function normalize(input) {
         ...(i.addon ? { addon: true } : {}),
         ...(i.after ? { after: true } : {}),
         ...(i.max === 1 ? { max: 1 } : {}),
+        ...(i.root ? { root: true } : {}),
       }));
   }
   for (const def of DEFAULT_INGREDIENTS) {
@@ -114,7 +115,7 @@ export function normalize(input) {
     if (!have) out.ingredients.push({ ...def });
     else {
       have.builtin = true;
-      for (const flag of ["addon", "after", "max"]) if (def[flag]) have[flag] = def[flag];
+      for (const flag of ["addon", "after", "max", "root"]) if (def[flag]) have[flag] = def[flag];
     }
   }
 

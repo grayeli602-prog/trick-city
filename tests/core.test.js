@@ -320,3 +320,22 @@ test("custom layout with nothing placed yet looks like the automatic one", () =>
     assert.deepEqual([n.x, n.y], [a.x, a.y], n.k);
   }
 });
+
+test("shove-its without pop are foundations, not built from the ollie", () => {
+  mem.clear();
+  const store = createStore();
+  assert.deepEqual(parentKeys("npbs:1"), []);
+  assert.deepEqual(parentKeys("npfs:1"), []);
+  assert.deepEqual(parentKeys("bs:1"), [""], "the pop shove-it still comes from the ollie");
+  assert.deepEqual(parentKeys("kf:1,npbs:1").sort(), ["kf:1", "npbs:1"]);
+  const M = buildModel(store);
+  assert.ok(!M.edges.some((e) => e.b.k === "npbs:1" || e.b.k === "npfs:1"), "no line from the ollie");
+  const shove = M.map.get("npbs:1");
+  assert.equal(shove.fl, 0, "first column, like the ollie");
+  assert.equal(shove.x, M.map.get("").x);
+  assert.equal(shove.side, "sun");
+  assert.equal(M.map.get("npfs:1").side, "moon");
+  store.setPref("filter", "next");
+  const next = buildModel(store);
+  assert.ok(next.map.has("npbs:1") && next.map.has("npfs:1"), "foundations always show in next stops");
+});

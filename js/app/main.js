@@ -5,7 +5,7 @@
 
 import { createStore, requestPersistence } from "../core/store.js";
 import { buildModel, bandAt, autoPositions, mapKeys } from "../core/model.js";
-import { SIDES, SIDE_ORDER, STANCES, STANCE_LABEL, STANCE_SHORT, LEVELS, WANT_LIMIT, CATALOG, parseKey, parentKeys } from "../core/catalog.js";
+import { SIDES, SIDE_ORDER, STANCES, STANCE_LABEL, STANCE_SHORT, LEVELS, WANT_LIMIT, CATALOG, parseKey, parentKeys, depthOf } from "../core/catalog.js";
 import { esc, dotSvg, bandIconSvg, gray, ingredientCount } from "../core/draw.js";
 import { MapView } from "./mapview.js";
 import { GridView } from "./grid.js";
@@ -369,7 +369,7 @@ function inspectorHtml() {
     return `
       <div class="px-sec px-title-in">
         <input data-name value="${esc(store.name(key, stance))}" aria-label="Trick name" autocomplete="off" spellcheck="false">
-        <span class="px-key">${esc(key || "ollie")} · ${ingredientCount(Object.values(recipe).reduce((a, b) => a + b, 0)).toLowerCase()}</span>
+        <span class="px-key">${esc(key || "ollie")} · ${ingredientCount(depthOf(recipe)).toLowerCase()}</span>
         ${ids.length ? `<div class="px-chips" style="margin-top:6px">${ids.map((id) => `<span class="chip"><i style="background:${gray(store.ingColor(id))}"></i>${esc(store.ing(id)?.name || id)}${recipe[id] > 1 ? ` ×${recipe[id]}` : ""}</span>`).join("")}</div>` : ""}
       </div>
       <div class="px-sec px-feet">
