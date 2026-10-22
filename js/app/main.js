@@ -633,7 +633,6 @@ $("#shareBtn").addEventListener("click", openShare);
 $("#selMode").addEventListener("click", () => {
   selectMode = !selectMode;
   $("#selMode").setAttribute("aria-pressed", String(selectMode));
-  hint();
   toast(selectMode ? "Select mode: tap tricks to add them, drag on empty space to box select." : "Select mode off");
 });
 $("#zoomCtl").addEventListener("click", (e) => {
@@ -645,12 +644,6 @@ $("#zoomCtl").addEventListener("click", (e) => {
     map.zoomAt(b.dataset.zoom === "1" ? 1.25 : 0.8, r.width / 2, r.height / 2, 220);
   }
 });
-
-function hint() {
-  $("#hint").textContent = view !== "map" || (compact && sel.size) ? "" : selectMode
-    ? "Select mode · tap to add · drag to box select"
-    : PHONE ? "Tap to select · hold to set level · two fingers to pan" : "Drag on empty space to box select · Space drag to pan";
-}
 
 /* ---------- search (command palette) ---------- */
 
@@ -908,7 +901,6 @@ function render() {
   renderStatus();
   renderToolbar();
   renderSelPill();
-  hint();
 }
 
 store.subscribe((info) => {
