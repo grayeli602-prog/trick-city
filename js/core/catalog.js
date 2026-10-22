@@ -24,7 +24,16 @@ export const DEFAULT_INGREDIENTS = Object.freeze([
   { id: "bb", name: "BS 180", color: "#8c5cf0", side: "moon", builtin: true },
   { id: "bvb", name: "BS body varial", color: "#e2559b", side: "moon", builtin: true, addon: true },
   { id: "bvf", name: "FS body varial", color: "#8fbf2f", side: "sun", builtin: true, addon: true },
+  // Foot kick-outs: named after the trick ("Ollie north", "Kickflip south").
+  { id: "north", name: "North", color: "#8f8f8f", side: "earth", builtin: true, after: true, max: 1 },
+  { id: "south", name: "South", color: "#a6a6a6", side: "earth", builtin: true, after: true, max: 1 },
+  // Shove-its without pop: the board spins under your feet, no ollie.
+  { id: "npbs", name: "Shove-it", color: "#7c7c7c", side: "sun", builtin: true, max: 1 },
+  { id: "npfs", name: "FS shove-it", color: "#b4b4b4", side: "moon", builtin: true, max: 1 },
 ]);
+
+/** Most of an ingredient a trick can have (most can be doubled, kick-outs and no-pop shove-its can't). */
+export const maxCount = (ingredient) => ingredient?.max || MAX_COUNT;
 
 export const DEFAULT_SIDE_COLORS = Object.freeze({ sun: "#ffcc4d", earth: "#6f9a7a", moon: "#1d2033" });
 
@@ -80,7 +89,7 @@ export function unitList(recipe, ingredients) {
   return units;
 }
 
-/* ---------- the starting catalog (28 flatground tricks) ---------- */
+/* ---------- the starting catalog (32 flatground tricks) ---------- */
 
 const LEGACY_CATALOG = [
   "", "s:bs1", "s:fs1", "s:bs2", "s:fs2", "b:bs1", "b:fs1", "b:bs2", "b:fs2", "s:bs2|b:bs1", "s:fs2|b:fs1",
@@ -100,7 +109,7 @@ function legacyKey(old) {
   return keyOf(recipe);
 }
 
-export const CATALOG = Object.freeze(LEGACY_CATALOG.map(legacyKey));
+export const CATALOG = Object.freeze([...LEGACY_CATALOG.map(legacyKey), "north:1", "south:1", "npbs:1", "npfs:1"]);
 
 /* ---------- names ---------- */
 
@@ -161,19 +170,29 @@ export function classicName(recipe, stance) {
   return [spin, core].filter(Boolean).join(" ") || "ollie";
 }
 
+/** "Shove-it" reads as "shove-it" inside a name; "BS body varial" keeps its capitals. */
+const inner = (name) => (/^[A-Z][a-z]/.test(name) ? name.charAt(0).toLowerCase() + name.slice(1) : name);
+
 /** Name for any key in a stance, using the user's ingredient names for extras. */
 export function autoName(key, stance, ingredients) {
   const recipe = parseKey(key);
   const byId = new Map(ingredients.map((i) => [i.id, i]));
   const base = {};
-  const extras = [];
+  const before = [];
+  const after = [];
   for (const id in recipe) {
-    if (CORE_IDS.has(id)) base[id] = recipe[id];
-    else extras.push((recipe[id] === 2 ? "double " : "") + (byId.get(id)?.name || id));
+    if (CORE_IDS.has(id)) {
+      base[id] = recipe[id];
+      continue;
+    }
+    const ing = byId.get(id);
+    const label = (recipe[id] === 2 ? "double " : "") + inner(ing?.name || id);
+    (ing?.after ? after : before).push(label);
   }
   let name = classicName(base, stance);
   if (name === null) name = unitList(base, ingredients).map((id) => byId.get(id)?.name || id).join(" + ");
-  if (extras.length) name = extras.join(" ") + (name === "ollie" ? "" : ` ${name}`);
+  if (before.length) name = before.join(" ") + (name === "ollie" && !after.length ? "" : ` ${name}`);
+  if (after.length) name = `${name} ${after.join(" ")}`;
   const prefix = stance === "regular" || (stance === "fakie" && /cab/.test(name)) ? "" : `${stance} `;
   name = prefix + name;
   return name.charAt(0).toUpperCase() + name.slice(1);

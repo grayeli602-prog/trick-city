@@ -105,6 +105,8 @@ export function normalize(input) {
         side: SIDES[i.side] ? i.side : "earth",
         ...(i.builtin ? { builtin: true } : {}),
         ...(i.addon ? { addon: true } : {}),
+        ...(i.after ? { after: true } : {}),
+        ...(i.max === 1 ? { max: 1 } : {}),
       }));
   }
   for (const def of DEFAULT_INGREDIENTS) {
@@ -112,7 +114,7 @@ export function normalize(input) {
     if (!have) out.ingredients.push({ ...def });
     else {
       have.builtin = true;
-      if (def.addon) have.addon = true;
+      for (const flag of ["addon", "after", "max"]) if (def[flag]) have[flag] = def[flag];
     }
   }
 

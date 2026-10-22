@@ -53,7 +53,8 @@ export function buildModel(store, { stance = "regular", filter = store.pref("fil
   }
 
   const { COLW, ROWH, X0, BANDPAD, BANDH, MAPW } = LAYOUT;
-  const sortKey = (n) => unitList(n.r, s.ingredients).map((id) => store.ingIndex(id)).join(".");
+  // Padded so ingredient 10 sorts after ingredient 2.
+  const sortKey = (n) => unitList(n.r, s.ingredients).map((id) => String(store.ingIndex(id)).padStart(3, "0")).join(".");
   const bands = {};
   let y = 0;
   for (const side of SIDE_ORDER) {
@@ -80,12 +81,46 @@ export function buildModel(store, { stance = "regular", filter = store.pref("fil
   const W = Math.max(MAPW, X0 + (maxFl + 1) * COLW + 40);
   const H = y;
   const custom = s.prefs.layout === "custom";
+  const placed = [];
+  const loose = [];
   for (const n of nodes) {
     const p = custom && s.positions[n.k];
-    n.x = clamp(p ? p.x : n.ax, 14, W - 14);
-    n.y = clamp(p ? p.y : n.ay, 14, H - 14);
+    if (!p) {
+      loose.push(n);
+      continue;
+    }
+    n.x = clamp(p.x, 14, W - 14);
+    n.y = clamp(p.y, 14, H - 14);
+    placed.push(n);
+  }
+  // In your own layout, tricks you haven't placed yet (like ones new to the
+  // app) take the nearest free spot in their band instead of covering yours.
+  for (const n of loose) {
+    const spot = custom && placed.length ? freeSpot(n, placed, bands[n.side], W) : { x: n.ax, y: n.ay };
+    n.x = clamp(spot.x, 14, W - 14);
+    n.y = clamp(spot.y, 14, H - 14);
+    placed.push(n);
   }
   return { nodes, map, edges, bands, W, H, maxFl, stance };
+}
+
+/** Closest spot to a trick's automatic position, in its band, that clears every placed trick and its label. */
+function freeSpot(n, placed, band, W) {
+  const CLEAR_X = 96;
+  const CLEAR_Y = 44;
+  const room = (x, y) => Math.min(...placed.map((m) => Math.max(Math.abs(m.x - x) / CLEAR_X, Math.abs(m.y - y) / CLEAR_Y)));
+  const spots = [{ x: n.ax, y: n.ay, d: -1 }];
+  for (let x = LAYOUT.X0; x <= W - 40; x += 25) {
+    for (let y = band.y0 + 30; y <= band.y1 - 40; y += 17) spots.push({ x, y, d: Math.hypot((x - n.ax) / 2, y - n.ay) });
+  }
+  spots.sort((a, b) => a.d - b.d);
+  let best = { x: n.ax, y: n.ay, r: -1 };
+  for (const p of spots) {
+    const r = room(p.x, p.y);
+    if (r >= 1) return p;
+    if (r > best.r) best = { ...p, r };
+  }
+  return best;
 }
 
 export function bandAt(M, y) {

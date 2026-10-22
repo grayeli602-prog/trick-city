@@ -1,7 +1,7 @@
 // Trick breakdown: name, side, ingredients, add-ons and how it connects.
 // Foot placement lives in the inspector.
 
-import { SIDES, parseKey, parentKeys, stepKey, sizeOf, BASE_COLOR } from "../core/catalog.js";
+import { SIDES, parseKey, parentKeys, stepKey, sizeOf, maxCount, BASE_COLOR } from "../core/catalog.js";
 import { buildModel } from "../core/model.js";
 import { esc, ingredientCount, gray } from "../core/draw.js";
 
@@ -49,7 +49,7 @@ export class Breakdown {
     const M = buildModel(store, { stance: this.stance, include: [key], filter: "all" });
     const children = M.edges.filter((e) => e.a.k === key).map((e) => e.b.k);
     const parents = parentKeys(key);
-    const available = store.state.ingredients.filter((i) => !(recipe[i.id] >= 2) && !(i.addon && !key));
+    const available = store.state.ingredients.filter((i) => !(recipe[i.id] >= maxCount(i)) && !(i.addon && !key));
     const quick = store.state.ingredients.filter((i) => i.addon || i.id === "bb" || i.id === "fb");
     const chip = (k) => `<button class="chip" type="button" data-go="${esc(k)}"><i style="background:${gray(store.color(k))}"></i>${esc(store.name(k, this.stance))}</button>`;
     const focusedName = document.activeElement?.matches?.("[data-name]") && this.el.contains(document.activeElement);
@@ -72,7 +72,7 @@ export class Breakdown {
         ${ids.map((id) => {
           const ing = store.ing(id) || { name: id, color: "#888888", side: "earth" };
           return `<div class="ing"><i style="background:${gray(ing.color)}"></i><span class="nm">${esc(ing.name)}<small>${SIDES[ing.side]}</small></span>
-            <div class="step"><button type="button" data-step="${esc(id)}" data-d="-1" aria-label="Less ${esc(ing.name)}">−</button><span>x${recipe[id]}</span><button type="button" data-step="${esc(id)}" data-d="1" aria-label="More ${esc(ing.name)}" ${recipe[id] >= 2 ? "disabled" : ""}>+</button></div></div>`;
+            <div class="step"><button type="button" data-step="${esc(id)}" data-d="-1" aria-label="Less ${esc(ing.name)}">−</button><span>x${recipe[id]}</span><button type="button" data-step="${esc(id)}" data-d="1" aria-label="More ${esc(ing.name)}" ${recipe[id] >= maxCount(ing) ? "disabled" : ""}>+</button></div></div>`;
         }).join("")}
         <div class="addrow">
           <select data-addsel aria-label="Ingredient to add">${available.map((i) => `<option value="${esc(i.id)}">${esc(i.name)}${recipe[i.id] ? " (make it x2)" : ""}</option>`).join("")}</select>
@@ -82,7 +82,7 @@ export class Breakdown {
       </div>
       <div class="sec">
         <span class="mono">Add-ons</span>
-        <div class="chips">${quick.map((i) => `<button class="chip" type="button" data-step="${esc(i.id)}" data-d="1" ${recipe[i.id] >= 2 || (i.addon && !key) ? "disabled" : ""}><i style="background:${gray(i.color)}"></i>+ ${esc(i.name)}</button>`).join("")}</div>
+        <div class="chips">${quick.map((i) => `<button class="chip" type="button" data-step="${esc(i.id)}" data-d="1" ${recipe[i.id] >= maxCount(i) || (i.addon && !key) ? "disabled" : ""}><i style="background:${gray(i.color)}"></i>+ ${esc(i.name)}</button>`).join("")}</div>
         <p class="hint">${key ? "Adds it on top of this trick as a new linked trick." : "Body varials go on top of a trick. Pick a trick first."}</p>
       </div>
       <div class="sec"><span class="mono">Built from</span><div class="chips">${parents.length ? parents.map(chip).join("") : `<span class="hint">Nothing. This is the base.</span>`}</div></div>

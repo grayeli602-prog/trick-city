@@ -16,9 +16,9 @@ const { buildModel, LAYOUT } = await import("../js/core/model.js");
 
 const ings = DEFAULT_INGREDIENTS.map((i) => ({ ...i }));
 
-test("catalog has the 28 starting tricks with unique keys", () => {
-  assert.equal(CATALOG.length, 28);
-  assert.equal(new Set(CATALOG).size, 28);
+test("catalog has the 32 starting tricks with unique keys", () => {
+  assert.equal(CATALOG.length, 32);
+  assert.equal(new Set(CATALOG).size, 32);
   assert.ok(CATALOG.includes(""));
   assert.ok(CATALOG.includes("bs:1,kf:1"));
 });
@@ -163,7 +163,7 @@ test("model: fixed bands and next stops", () => {
   const store = createStore();
   const M = buildModel(store);
   assert.equal(M.H, LAYOUT.BANDH * 3);
-  assert.equal(M.nodes.length, 28);
+  assert.equal(M.nodes.length, 32);
   const kick = M.map.get("kf:1");
   assert.equal(kick.side, "sun");
   assert.ok(kick.y >= M.bands.sun.y0 && kick.y < M.bands.sun.y1);
@@ -264,4 +264,59 @@ test("a failed save is announced once, and saves that work stay quiet", () => {
   store.saveNow();
   assert.equal(store.saveError, false, "recovers when storage works again");
   assert.equal(news(), 2);
+});
+
+test("ollie north, ollie south and shove-its without pop", () => {
+  mem.clear();
+  const store = createStore();
+  assert.equal(store.name("north:1"), "Ollie north");
+  assert.equal(store.name("south:1"), "Ollie south");
+  assert.equal(store.name("north:1", "switch"), "Switch ollie north");
+  assert.equal(store.name("kf:1,north:1"), "Kickflip north");
+  assert.equal(store.name("npbs:1"), "Shove-it");
+  assert.equal(store.name("npbs:1", "fakie"), "Fakie shove-it");
+  assert.equal(store.name("npfs:1"), "FS shove-it");
+  assert.equal(store.name("bvb:1,kf:1"), "BS body varial kickflip", "add-on names unchanged");
+  assert.equal(store.side("north:1"), "earth");
+  assert.equal(store.side("npbs:1"), "sun");
+  assert.equal(store.side("npfs:1"), "moon");
+  const M = buildModel(store);
+  for (const k of ["north:1", "south:1", "npbs:1", "npfs:1"]) assert.ok(M.map.has(k), `${k} on the map`);
+  assert.equal(store.ing("north").max, 1, "can't be doubled");
+  // An older save gets the new ingredients and tricks too.
+  const old = migrate({ schema: 2, ingredients: DEFAULT_INGREDIENTS.slice(0, 8), levels: { "regular|kf:1": 2 } });
+  assert.ok(old.ingredients.find((i) => i.id === "south")?.after);
+});
+
+test("in your own layout, tricks you haven't placed don't land on yours", () => {
+  mem.clear();
+  const store = createStore();
+  const auto = buildModel(store);
+  // Pin everything except the shove-it (no pop), then crowd its automatic spot.
+  const at = auto.map.get("npbs:1");
+  store.transact("layout", (s) => {
+    s.prefs.layout = "custom";
+    for (const n of auto.nodes) if (n.k !== "npbs:1") s.positions[n.k] = { x: n.ax, y: n.ay };
+    s.positions["kf:1"] = { x: at.ax, y: at.ay };
+  });
+  const M = buildModel(store);
+  const n = M.map.get("npbs:1");
+  for (const m of M.nodes) {
+    if (m === n) continue;
+    assert.ok(Math.abs(m.x - n.x) >= 96 || Math.abs(m.y - n.y) >= 44, `clear of ${m.k}`);
+  }
+  assert.equal(n.side, "sun");
+  assert.ok(n.y >= M.bands.sun.y0 && n.y < M.bands.sun.y1, "stays in its band");
+});
+
+test("custom layout with nothing placed yet looks like the automatic one", () => {
+  mem.clear();
+  const store = createStore();
+  const auto = buildModel(store);
+  store.setPref("layout", "custom");
+  const M = buildModel(store);
+  for (const n of M.nodes) {
+    const a = auto.map.get(n.k);
+    assert.deepEqual([n.x, n.y], [a.x, a.y], n.k);
+  }
 });

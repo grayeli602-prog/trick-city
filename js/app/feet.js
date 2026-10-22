@@ -2,22 +2,30 @@
 // Positions are stored for a regular rider (nose on the left) and mirrored
 // on screen for goofy riders.
 
-// One shoe seen from above, toe up, centered on 0,0: a black skate shoe with a
-// white sole, white laces and a light collar. Our own drawing, no brand's.
-const SOLE = "M0,-50 C13,-50 19,-39 18,-24 C17,-8 15,8 15,24 C15,41 9,50 0,50 C-9,50 -15,41 -15,24 C-15,8 -17,-8 -18,-24 C-19,-39 -13,-50 0,-50Z";
-const UPPER = "M0,-44 C10.4,-44 15.2,-34.3 14.4,-21.1 C13.6,-7 12,7 12,21.1 C12,36.1 7.2,44 0,44 C-7.2,44 -12,36.1 -12,21.1 C-12,7 -13.6,-7 -14.4,-21.1 C-15.2,-34.3 -10.4,-44 0,-44Z";
-const TONGUE = "M-6.5,-27 C-6.5,-31 6.5,-31 6.5,-27 L7,12 C7,15.5 -7,15.5 -7,12Z";
-const COLLAR = "M0,15.5 C7.2,15.5 9.5,21 9.5,28 C9.5,36.5 5.8,41 0,41 C-5.8,41 -9.5,36.5 -9.5,28 C-9.5,21 -7.2,15.5 0,15.5Z";
-const LACES = [-23, -16, -9, -2, 5];
-const LABEL_Y = 28.5;
+// One shoe seen from above, toe up, centered on 0,0, drawn cartoon style: thick
+// outlines, a chunky white sole, a shiny black upper and fat white laces.
+// Our own design, not any brand's.
+const SOLE = "M0,-52 C15.5,-52 22,-40 21,-24 C20,-8 18,8 18,25 C18,43 10.5,52 0,52 C-10.5,52 -18,43 -18,25 C-18,8 -20,-8 -21,-24 C-22,-40 -15.5,-52 0,-52Z";
+const UPPER = "M0,-45.5 C12.4,-45.5 17.6,-35 16.8,-21 C16,-7 14.4,7 14.4,21.9 C14.4,37.6 8.4,45.5 0,45.5 C-8.4,45.5 -14.4,37.6 -14.4,21.9 C-14.4,7 -16,-7 -16.8,-21 C-17.6,-35 -12.4,-45.5 0,-45.5Z";
+const STITCH = "M0,-41.6 C10.9,-41.6 15.4,-32 14.7,-19.2 C14,-6.4 12.6,6.4 12.6,20 C12.6,34.4 7.4,41.6 0,41.6 C-7.4,41.6 -12.6,34.4 -12.6,20 C-12.6,6.4 -14,-6.4 -14.7,-19.2 C-15.4,-32 -10.9,-41.6 0,-41.6Z";
+const TONGUE = "M-7.5,-28.5 C-7.5,-34 7.5,-34 7.5,-28.5 L8,12.5 C8,16.5 -8,16.5 -8,12.5Z";
+const COLLAR = "M0,16.5 C8,16.5 10.8,22.5 10.8,29.5 C10.8,38.5 6.8,43 0,43 C-6.8,43 -10.8,38.5 -10.8,29.5 C-10.8,22.5 -8,16.5 0,16.5Z";
+const HEEL_TAB = "M-4.2,44 L4.2,44 L3.8,50.2 C3.8,51.6 -3.8,51.6 -3.8,50.2Z";
+const LACES = [-22, -13.5, -5, 3.5];
+const LABEL_Y = 30;
+const INK = "#111";
+const WHITE = "#fbfaf6";
 const shoeArt = [
-  `<path class="sole" d="${SOLE}" fill="#f3f2ed" stroke="#101010" stroke-width="1.5"/>`,
-  `<path d="${UPPER}" fill="#151515"/>`,
-  `<path d="M-12,-30.5 C-5,-35.5 5,-35.5 12,-30.5" fill="none" stroke="#454545" stroke-width="1" stroke-dasharray="2 1.6"/>`,
-  `<path d="${TONGUE}" fill="#232323"/>`,
-  ...LACES.map((y) => `<circle cx="-9.2" cy="${y}" r="1" fill="#777"/><circle cx="9.2" cy="${y}" r="1" fill="#777"/>`),
-  ...LACES.map((y) => `<path d="M-8.4,${y} L8.4,${y + 1.2}" stroke="#f3f2ed" stroke-width="2.3" stroke-linecap="round"/>`),
-  `<path d="${COLLAR}" fill="#e7e5df" stroke="#0c0c0c" stroke-width="1.2"/>`,
+  `<path class="sole" d="${SOLE}" fill="${WHITE}" stroke="${INK}" stroke-width="3" stroke-linejoin="round"/>`,
+  `<path d="${UPPER}" fill="#1e1e1e" stroke="${INK}" stroke-width="1.6"/>`,
+  `<path d="${STITCH}" fill="none" stroke="${WHITE}" stroke-width="1.1" stroke-dasharray="2.4 2.2" opacity=".35"/>`,
+  `<path d="M-9.5,-35.5 C-7,-40.5 -1.5,-42 3.5,-41.2" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round" opacity=".8"/>`,
+  `<circle cx="8" cy="-38.5" r="1.5" fill="#fff" opacity=".8"/>`,
+  `<path d="${TONGUE}" fill="#2c2c2c" stroke="${INK}" stroke-width="1.4"/>`,
+  ...LACES.map((y) => `<circle cx="-10.4" cy="${y + 0.8}" r="1.1" fill="#8a8a8a"/><circle cx="10.4" cy="${y + 0.8}" r="1.1" fill="#8a8a8a"/>`),
+  ...LACES.map((y) => `<path d="M-9,${y} L9,${y + 1.6}" stroke="${INK}" stroke-width="5.6" stroke-linecap="round"/><path d="M-9,${y} L9,${y + 1.6}" stroke="${WHITE}" stroke-width="3.2" stroke-linecap="round"/>`),
+  `<path d="${HEEL_TAB}" fill="#1e1e1e" stroke="${INK}" stroke-width="1.4"/>`,
+  `<path d="${COLLAR}" fill="#efede8" stroke="${INK}" stroke-width="2.2"/>`,
 ].join("");
 const BOLTS = [86, 100, 260, 274].flatMap((x) => [[x, 68], [x, 92]]);
 
@@ -51,7 +59,7 @@ export class FeetEditor {
     const p = this._view(this.feet[id]);
     return `<g class="shoe${this.selected === id ? " on" : ""}" data-shoe="${id}" transform="translate(${p.x},${p.y}) rotate(${p.a})">
       ${shoeArt}
-      <text x="0" y="${LABEL_Y + 4.3}" text-anchor="middle" font-size="12" font-weight="700" fill="#151515" font-family="Geist, system-ui, sans-serif" transform="rotate(${-p.a},0,${LABEL_Y})">${label}</text>
+      <text x="0" y="${LABEL_Y + 4.6}" text-anchor="middle" font-size="13" font-weight="700" fill="${INK}" font-family="Geist, system-ui, sans-serif" transform="rotate(${-p.a},0,${LABEL_Y})">${label}</text>
     </g>`;
   }
 
